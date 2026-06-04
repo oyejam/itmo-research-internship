@@ -27,5 +27,6 @@ Then compile:
 
 `520194_Oyetunde_Jamiu_Jamiu_Research_Internship_Revised.tex`
 
-The first document can be used as a mathematical appendix or supporting document for your supervisor. The second document is the revised research report.
+The first document may be used as a mathematical appendix or supporting material. The second document is the revised research report, which is still under review pending your verification of the code implementation, results, and generated figures, and their consistency with the original paper. After this review, a full manuscript can be prepared for submission to the ISU portal or as otherwise directed.
+
 
