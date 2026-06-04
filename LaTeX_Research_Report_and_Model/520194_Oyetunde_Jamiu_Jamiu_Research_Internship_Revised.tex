@@ -1,0 +1,572 @@
+\documentclass[12pt,a4paper]{report}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsfonts,bm,mathtools}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{siunitx}
+\usepackage{float}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{setspace}
+\usepackage{titlesec}
+
+\onehalfspacing
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue
+}
+
+\titleformat{\chapter}{\normalfont\huge\bfseries}{\thechapter}{1em}{}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+\vspace*{1.0cm}
+{\Large Faculty of Control Systems and Robotics\par}
+\vspace{0.3cm}
+{\large Master's in Robotics and Artificial Intelligence\par}
+\vspace{1.2cm}
+{\large Course Name: Research Project Report\par}
+\vspace{0.3cm}
+{\large Supervisor Name: Prof. Sergey M. Vlasov\par}
+\vspace{0.3cm}
+{\large Student Name: Oyetunde Jamiu Olaide\par}
+\vspace{0.3cm}
+{\large Student ID: 520194\par}
+\vfill
+{\Huge\bfseries Uncertainty-Aware Model Predictive Control for Constrained Nonlinear Systems: A UAV Landing Case Study\par}
+\vfill
+{\large ITMO University, Saint Petersburg, Russia\par}
+\vspace{0.3cm}
+{\large 2026\par}
+\end{titlepage}
+
+\pagenumbering{roman}
+
+\chapter*{Abstract}
+Autonomous unmanned aerial vehicles (UAVs) are increasingly deployed in safety-critical applications such as precision landing on dynamic platforms, where robust control strategies are essential for safe and reliable operation. This research develops an uncertainty-aware Model Predictive Control (MPC) framework for constrained nonlinear UAV landing, with special attention to agile landing on a moving unmanned surface vehicle (USV). The study is strengthened through reverse engineering of the paper \emph{Model predictive control-based trajectory generation for agile landing of unmanned aerial vehicle on a moving boat}, from which the UAV model, USV prediction structure, input-increment MPC formulation, mission state machine, and forcing attitude alignment (FAA) mechanism are reconstructed and implemented in MATLAB/Simulink.
+
+The proposed framework extends deterministic MPC by incorporating structured uncertainty modeling and robust constraint tightening concepts. The reverse-engineered system uses a twelve-state hover-linearized UAV model, a Gerstner-wave-inspired USV deck predictor, a finite-horizon quadratic programming formulation, and dynamically varying state penalties that prioritize deck attitude synchronization near touchdown. The resulting formulation addresses environmental disturbances, moving-platform uncertainty, actuator limits, state constraints, and terminal landing requirements. Simulation-oriented performance metrics include landing position error, touchdown velocity, attitude deviation, constraint violation, success rate, and computational feasibility. The work provides a professional mathematical and computational basis for future real-time implementation of uncertainty-aware MPC in UAV landing tasks.
+
+\tableofcontents
+\listoftables
+\listoffigures
+\newpage
+\pagenumbering{arabic}
+
+\chapter{Motivation and Background}
+
+\section{Motivation}
+Unmanned aerial vehicles have become increasingly important in applications requiring high levels of autonomy, reliability, and safety, including maritime operations, emergency response, surveillance, logistics, and infrastructure inspection. In many of these applications, autonomous landing is mission-critical. A failed landing may damage the vehicle, interrupt the mission, or create hazards for nearby personnel and infrastructure.
+
+Landing is one of the most demanding phases of UAV operation because it combines nonlinear vehicle dynamics, strict actuator constraints, environmental disturbance, ground effect, sensor uncertainty, and terminal touchdown requirements. These difficulties increase substantially when the landing surface itself is moving, such as the deck of a USV. In that case, the UAV must synchronize not only position but also deck velocity and attitude, especially during the final flare phase.
+
+Model Predictive Control is well suited for this problem because it solves a constrained finite-horizon optimal control problem at every sampling instant. MPC can predict future constraint violations, incorporate future USV deck states, and optimize performance while respecting state and input limits. However, deterministic MPC may perform poorly when uncertainty is neglected. Disturbances such as wind, model mismatch, payload changes, imperfect state estimation, and wave-induced USV motion can cause tracking errors and unsafe touchdown conditions.
+
+\section{Problem Statement}
+Most MPC-based UAV landing controllers assume deterministic models or introduce fixed safety margins. Such approaches may be insufficient for landing on a moving and tilting USV deck because the true landing environment contains multiple interacting uncertainties. Robust MPC formulations provide stronger safety guarantees, but they may become conservative. Stochastic and learning-based MPC approaches can improve prediction but introduce computational and safety-certification challenges.
+
+The central problem addressed in this research is therefore:
+\begin{quote}
+How can an uncertainty-aware MPC framework be formulated for constrained nonlinear UAV landing so that it maintains safety, tracking accuracy, attitude synchronization, and real-time feasibility under moving-platform and environmental uncertainty?
+\end{quote}
+
+\section{Research Objectives}
+The objectives of this research are:
+\begin{enumerate}
+    \item to develop a constrained nonlinear MPC formulation for UAV landing;
+    \item to incorporate uncertainty through bounded disturbance modeling and robust constraint tightening;
+    \item to reverse engineer a published MPC-based UAV landing method and reproduce its mathematical structure in MATLAB/Simulink;
+    \item to formulate the UAV and USV models required for landing on a moving boat;
+    \item to evaluate landing accuracy, touchdown velocity, attitude alignment, constraint satisfaction, and computational feasibility;
+    \item to provide a foundation for future real-world implementation of uncertainty-aware UAV landing control.
+\end{enumerate}
+
+\chapter{Overview and Scope}
+
+\section{Literature Context}
+MPC has become a dominant approach for UAV landing because it can directly handle constraints and optimize tracking performance. Existing methods include deterministic nonlinear MPC, robust MPC, stochastic MPC, safety-integrated MPC, learning-augmented MPC, and cooperative MPC. Each formulation offers benefits but also limitations.
+
+Deterministic MPC is computationally attractive but does not explicitly account for uncertainty. Robust MPC can guarantee constraint satisfaction under bounded disturbances, but performance may become conservative. Stochastic MPC can balance risk and performance using probability distributions, but it requires reliable statistics and can be computationally expensive. Learning-based MPC improves model accuracy but can be difficult to certify in safety-critical applications.
+
+\section{Research Gap}
+The reviewed literature indicates that uncertainty handling, moving-platform prediction, real-time feasibility, and terminal landing accuracy are often treated separately. There is a need for a unified framework that combines:
+\begin{itemize}
+    \item constrained nonlinear UAV dynamics;
+    \item moving USV deck prediction;
+    \item robust uncertainty-aware constraint handling;
+    \item attitude synchronization during touchdown;
+    \item implementable MATLAB/Simulink simulation.
+\end{itemize}
+
+\section{Reverse-Engineered Reference Paper}
+The reverse-engineered paper by Prochazka et al. proposes an MPC-based trajectory generator for agile UAV landing on a moving boat. Its main contributions are:
+\begin{enumerate}
+    \item use of predicted USV states over the MPC horizon;
+    \item tracking of position, velocity, attitude, and Euler rates;
+    \item dynamic state-weight modification according to flight phase;
+    \item forcing attitude alignment near touchdown;
+    \item simulation validation in different sea states and real-world demonstration.
+\end{enumerate}
+
+This research uses that paper as the experimental and mathematical foundation for developing the MATLAB/Simulink simulation and for extending the discussion toward uncertainty-aware MPC.
+
+\chapter{Methodological Approach}
+
+\section{Structured Uncertainty Modeling}
+Uncertainty affecting UAV landing is classified into three categories:
+\begin{enumerate}
+    \item \textbf{Parametric uncertainty}: uncertainty in mass, inertia, motor coefficients, drag coefficients, and payload.
+    \item \textbf{Additive disturbances}: wind gusts, turbulence, ground effect, and wave-induced disturbances.
+    \item \textbf{State-estimation uncertainty}: errors from GNSS, IMU, camera, AprilTag detection, or relative localization.
+\end{enumerate}
+
+The uncertain discrete-time model is written as
+\begin{equation}
+\bm{x}_{k+1}=f_d(\bm{x}_k,\bm{u}_k)+\bm{w}_k,
+\end{equation}
+where $\bm{w}_k\in\mathcal{W}$ is a bounded disturbance. This representation supports robust constraint tightening and Monte Carlo evaluation.
+
+\section{Nominal Nonlinear MPC}
+The nominal nonlinear MPC problem is
+\begin{align}
+\min_{\bm{u}_{0:N-1}} \quad
+& \sum_{i=0}^{N-1}
+\ell(\bm{x}_i,\bm{u}_i,\bm{r}_i)
++\ell_f(\bm{x}_N,\bm{r}_N)\\
+\text{s.t.}\quad
+& \bm{x}_{i+1}=f_d(\bm{x}_i,\bm{u}_i),\\
+& \bm{x}_i\in\mathcal{X},\qquad \bm{u}_i\in\mathcal{U},\\
+& \bm{x}_0=\hat{\bm{x}}_k.
+\end{align}
+The first input is applied and the problem is solved again at the next sample.
+
+\section{Robust Constraint Tightening}
+Let the true state be decomposed as
+\begin{equation}
+\bm{x}_k=\bar{\bm{x}}_k+\bm{e}_k,
+\end{equation}
+where $\bar{\bm{x}}_k$ is the nominal state and $\bm{e}_k$ is the error induced by uncertainty. If $\bm{e}_k\in\mathcal{E}$, tightened constraints are
+\begin{equation}
+\mathcal{X}_{tight}=\mathcal{X}\ominus\mathcal{E},
+\qquad
+\mathcal{U}_{tight}=\mathcal{U}\ominus K\mathcal{E},
+\end{equation}
+where $\ominus$ denotes Pontryagin set difference and $K$ is a stabilizing feedback gain. If the nominal trajectory satisfies tightened constraints, the true trajectory satisfies the original constraints for all admissible bounded disturbances.
+
+\chapter{System Model and Reverse-Engineered Mathematical Formulation}
+
+\section{Coordinate Frames}
+Let $\mathcal{W}$ be the local East-North-Up inertial frame, $\mathcal{C}$ the UAV body frame, and $\mathcal{B}$ the USV body frame. The UAV state is
+\begin{equation}
+\bm{x} =
+\begin{bmatrix}
+x_c & y_c & z_c & \phi_c & \theta_c & \psi_c &
+v_x & v_y & v_z & v_\phi & v_\theta & v_\psi
+\end{bmatrix}^{\top}.
+\end{equation}
+The predicted USV deck state is
+\begin{equation}
+\bm{r} =
+\begin{bmatrix}
+x_b & y_b & z_b & \phi_b & \theta_b & \psi_b &
+u_b & v_b & w_b & p_b & q_b & r_b
+\end{bmatrix}^{\top}.
+\end{equation}
+
+\section{USV Prediction Model}
+The reference paper describes the USV with a six-degree-of-freedom Fossen-style model:
+\begin{align}
+\dot{\bm{\eta}}_L &= \bm{\nu},\\
+\dot{\bm{\nu}} &= -\bm{M}^{-1}(\bm{D}\bm{\nu}+\bm{G}\bm{\eta}_L)
++\bm{C}_{wave,\nu}\bm{x}_{wave,\nu},\\
+\dot{\bm{x}}_{wave,\nu} &= \bm{A}_{wave,\nu}\bm{x}_{wave,\nu}.
+\end{align}
+Here $\bm{\eta}_L=[x_b,y_b,z_b,\phi_b,\theta_b,\psi_b]^{\top}$ and $\bm{\nu}=[u_b,v_b,w_b,p_b,q_b,r_b]^{\top}$.
+
+Because the full hydrodynamic matrices are not provided in the paper, the MATLAB implementation uses a Gerstner-wave-inspired predictor. The vertical wave elevation is
+\begin{equation}
+\zeta(t)=\sum_{i=1}^{N_w}A_i\cos(-\omega_i t+\varphi_i),
+\end{equation}
+and the deck position is
+\begin{equation}
+\bm{p}_b(t)=\bm{p}_{b0}+\bm{v}_{current}t+
+\begin{bmatrix}
+x_{wave}(t)\\
+y_{wave}(t)\\
+h_{deck}+\zeta(t)
+\end{bmatrix}.
+\end{equation}
+The deck roll and pitch are approximated as
+\begin{align}
+\phi_b(t)&=\sum_{i=1}^{N_w}k_\phi A_i\sin(\gamma_i)\sin(-\omega_i t+\varphi_i),\\
+\theta_b(t)&=\sum_{i=1}^{N_w}k_\theta A_i\cos(\gamma_i)\sin(-\omega_i t+\varphi_i).
+\end{align}
+The derivatives of these quantities form the USV velocity and Euler-rate predictions.
+
+\section{UAV Nonlinear Dynamics}
+The UAV position and attitude are
+\begin{equation}
+\bm{\eta}_c=
+\begin{bmatrix}
+\bm{\eta}_{pc}\\
+\bm{\eta}_{oc}
+\end{bmatrix}
+=
+\begin{bmatrix}
+x_c & y_c & z_c & \phi_c & \theta_c & \psi_c
+\end{bmatrix}^{\top}.
+\end{equation}
+The translational dynamics are
+\begin{align}
+\dot{\bm{\eta}}_{pc}&=\bm{\nu}_l,\\
+\ddot{\bm{\eta}}_{pc}&=-g\bm{e}_3+\frac{1}{m}\bm{R}^{w}_{c}\bm{T}_c.
+\end{align}
+The total thrust is
+\begin{equation}
+\bm{T}_c=
+\begin{bmatrix}
+0\\0\\k_T\sum_{i=1}^{4}\omega_i^2
+\end{bmatrix}.
+\end{equation}
+The attitude dynamics are
+\begin{align}
+\dot{\bm{\eta}}_{oc}&=\bm{\nu}_a,\\
+\ddot{\bm{\eta}}_{oc}
+&=
+\left(\bm{T}^{w}_{c}\bm{I}_{c}\bm{T}^{c}_{w}\right)^{-1}
+\left(\bm{\tau}_{c}-\bm{C}_{t}\dot{\bm{\eta}}_{oc}\right).
+\end{align}
+
+\section{Hover-Linearized UAV Model}
+At hover,
+\begin{equation}
+k_T\sum_{i=1}^{4}\omega_{hi}^{2}=mg.
+\end{equation}
+The linearized continuous model is
+\begin{equation}
+\dot{\bm{x}}=\bm{A}_c\bm{x}+\bm{B}_c\bm{u}.
+\end{equation}
+The implementation uses the small-angle relationships
+\begin{equation}
+\dot{v}_x=g\theta_c,\qquad
+\dot{v}_y=-g\phi_c.
+\end{equation}
+The input matrix is
+\begin{equation}
+\bm{B}_c =
+\begin{bmatrix}
+\bm{0}_{8\times 4}\\
+\frac{k_T}{m} & \frac{k_T}{m} & \frac{k_T}{m} & \frac{k_T}{m}\\
+-\frac{k_Tl}{I_{xx}} & -\frac{k_Tl}{I_{xx}} & \frac{k_Tl}{I_{xx}} & \frac{k_Tl}{I_{xx}}\\
+-\frac{k_Tl}{I_{yy}} & \frac{k_Tl}{I_{yy}} & \frac{k_Tl}{I_{yy}} & -\frac{k_Tl}{I_{yy}}\\
+-\frac{b}{I_{zz}} & \frac{b}{I_{zz}} & -\frac{b}{I_{zz}} & \frac{b}{I_{zz}}
+\end{bmatrix}.
+\end{equation}
+The discrete-time model is
+\begin{equation}
+\bm{x}_{k+1}=\bm{A}\bm{x}_k+\bm{B}\bm{u}_k.
+\end{equation}
+
+\section{Input-Increment MPC Model}
+The reverse-engineered paper penalizes input increments rather than absolute rotor input. Define
+\begin{equation}
+\Delta\bm{u}_k=\bm{u}_k-\bm{u}_{k-1}.
+\end{equation}
+The augmented model is
+\begin{equation}
+\begin{bmatrix}
+\bm{x}_{k+1}\\
+\bm{u}_{k}
+\end{bmatrix}
+=
+\begin{bmatrix}
+\bm{A} & \bm{B}\\
+\bm{0} & \bm{I}
+\end{bmatrix}
+\begin{bmatrix}
+\bm{x}_{k}\\
+\bm{u}_{k-1}
+\end{bmatrix}
+\begin{bmatrix}
+\bm{B}\\
+\bm{I}
+\end{bmatrix}
+\Delta\bm{u}_k.
+\end{equation}
+
+\section{Prediction Horizon and Cost Function}
+For prediction horizon $N=20$ and sampling time $T_s=\SI{0.1}{s}$, the horizon length is $\SI{2}{s}$. The stacked output prediction is
+\begin{equation}
+\bm{Y}=\bm{\Phi}_Y\bm{x}_{a,k}+\bm{\Gamma}_Y\Delta\bm{U}.
+\end{equation}
+The MPC cost is
+\begin{equation}
+J=
+\frac{1}{2}(\bm{Y}-\bm{R})^{\top}\bar{\bm{Q}}(\bm{Y}-\bm{R})
++\frac{1}{2}\Delta\bm{U}^{\top}\bar{\bm{R}}\Delta\bm{U}.
+\end{equation}
+This gives the quadratic program
+\begin{equation}
+\min_{\Delta\bm{U}}
+\frac{1}{2}\Delta\bm{U}^{\top}\bm{H}\Delta\bm{U}
++\bm{f}^{\top}\Delta\bm{U},
+\end{equation}
+where
+\begin{align}
+\bm{H}&=\bm{\Gamma}_Y^{\top}\bar{\bm{Q}}\bm{\Gamma}_Y+\bar{\bm{R}},\\
+\bm{f}&=\bm{\Gamma}_Y^{\top}\bar{\bm{Q}}(\bm{\Phi}_Y\bm{x}_{a,k}-\bm{R}).
+\end{align}
+
+\section{Forcing Attitude Alignment}
+During the final flare phase, the UAV must align roll and pitch with the USV deck. The paper introduces the exponential weighting function
+\begin{equation}
+f(v_d)=1+\frac{\alpha}{e^{\beta v_d}},
+\end{equation}
+where $v_d=z_c-z_b$ is the vertical deck distance. The implemented dynamic weights are
+\begin{align}
+q_z(v_d)&=40+\frac{10000}{e^{20v_d}},\\
+q_\phi(v_d)&=1+\frac{50000}{e^{10v_d}},\\
+q_\theta(v_d)&=1+\frac{50000}{e^{10v_d}},\\
+q_{v_z}(v_d)&=3000+\frac{3000}{e^{25v_d}}.
+\end{align}
+As $v_d$ decreases, attitude tracking becomes more important. This creates the FAA behavior observed in the reference paper.
+
+\section{Constraints}
+The main constraints are
+\begin{align}
+-0.7854 &\leq \phi_c,\theta_c \leq 0.7854,\\
+-8 &\leq v_x,v_y \leq 8,\\
+-4 &\leq v_z \leq 4,\\
+-2 &\leq v_\phi,v_\theta,v_\psi \leq 2.
+\end{align}
+The rotor inputs and input increments are bounded as
+\begin{equation}
+\bm{u}_{min}\leq \bm{u}_k+\bm{u}_{hover}\leq \bm{u}_{max},
+\qquad
+\Delta\bm{u}_{min}\leq \Delta\bm{u}_k\leq \Delta\bm{u}_{max}.
+\end{equation}
+
+\section{Mission State Machine}
+The state machine consists of
+\begin{equation}
+\{\mathrm{GET\_ALTITUDE},\mathrm{APPROACH},\mathrm{TRACKING},
+\mathrm{TRACKING\_STABLE},\mathrm{DESCENT},\mathrm{FLARE},\mathrm{LANDED}\}.
+\end{equation}
+The reference passed to the MPC depends on the current state. During approach, the UAV moves to the USV location at altitude $h_a=\SI{15}{m}$. During tracking, it follows the USV at height $h_t=\SI{7}{m}$. During descent, it reduces altitude relative to the deck. During flare, it tracks full deck position, velocity, attitude, and Euler rates.
+
+\begin{algorithm}[H]
+\caption{MPC-FAA landing procedure}
+\begin{algorithmic}[1]
+\State Initialize UAV model, MPC matrices, and previous input.
+\For{each sampling instant}
+    \State Predict USV deck states over the horizon.
+    \State Update the mission state machine.
+    \State Generate full-state reference trajectory.
+    \State Compute FAA dynamic weighting from deck distance.
+    \State Solve the constrained MPC quadratic program.
+    \State Apply the first input increment.
+    \State Propagate the UAV model.
+    \State Check touchdown and landing success conditions.
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+\chapter{MATLAB/Simulink Implementation}
+
+\section{Implementation Structure}
+The MATLAB implementation is organized into separate files to support clarity and documentation. The main demonstration files are:
+\begin{itemize}
+    \item \texttt{run\_main.m}: single landing simulation;
+    \item \texttt{run\_monte\_carlo.m}: repeated trials and statistics;
+    \item \texttt{build\_simulink\_model.m}: generation of an executable Simulink harness.
+\end{itemize}
+
+The support files implement the model, MPC solver, reference generation, USV prediction, plotting, and Simulink step logic.
+
+\begin{table}[H]
+\centering
+\caption{Mapping between implementation files and mathematical roles.}
+\begin{tabular}{p{0.36\linewidth}p{0.56\linewidth}}
+\toprule
+File & Role\\
+\midrule
+\texttt{initialize\_paper\_parameters.m} & Defines physical, MPC, constraint, and wave parameters.\\
+\texttt{build\_uav\_linear\_model.m} & Builds the hover-linearized UAV model.\\
+\texttt{discretize\_uav\_model.m} & Discretizes the continuous model.\\
+\texttt{build\_prediction\_matrices.m} & Builds stacked MPC prediction matrices.\\
+\texttt{gerstner\_usv\_motion.m} & Generates predicted USV deck motion.\\
+\texttt{uav\_landing\_state\_machine.m} & Implements the landing phase logic.\\
+\texttt{create\_reference\_trajectory.m} & Creates state-dependent reference horizons.\\
+\texttt{faa\_weight\_matrix.m} & Implements dynamic FAA weights.\\
+\texttt{solve\_mpc\_qp.m} & Solves the constrained quadratic program.\\
+\texttt{simulate\_landing\_trial.m} & Runs closed-loop simulation.\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{MATLAB Execution Order}
+The direct execution order is:
+\begin{enumerate}
+    \item \texttt{run\_main}
+    \item \texttt{run\_monte\_carlo}
+    \item \texttt{build\_simulink\_model}
+    \item \texttt{open\_system('uav\_landing\_mpc\_faa\_model')}
+    \item \texttt{sim('uav\_landing\_mpc\_faa\_model')}
+\end{enumerate}
+All other files are called automatically.
+
+\section{Simulation Parameters}
+\begin{table}[H]
+\centering
+\caption{Main reverse-engineered simulation parameters.}
+\begin{tabular}{lll}
+\toprule
+Parameter & Value & Description\\
+\midrule
+$m$ & \SI{3.5}{kg} & UAV mass\\
+$l$ & \SI{0.325}{m} & UAV arm length\\
+$h_a$ & \SI{15}{m} & approach altitude\\
+$h_t$ & \SI{7}{m} & tracking altitude\\
+$v_{la}$ & \SI{1}{m.s^{-1}} & landing approach velocity\\
+$v_{fa}$ & \SI{0.5}{m.s^{-1}} & flare velocity\\
+$N$ & 20 & MPC horizon steps\\
+$T_s$ & \SI{0.1}{s} & sampling time\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\chapter{Simulation Results and Discussion}
+
+\section{Simulation Environment}
+The simulation environment represents a UAV approaching and landing on a moving USV deck. The USV is affected by wave-induced heave, surge, sway, roll, pitch, and yaw motion. The UAV receives predicted USV states over the MPC horizon and generates a trajectory that can be tracked by a lower-level controller. The Simulink harness reproduces this closed-loop structure through a MATLAB interpreted function block.
+
+\section{Landing Scenario}
+The UAV begins away from the USV and ascends to an approach altitude. It then approaches the predicted USV location, transitions to tracking above the deck, descends when landing conditions are satisfied, and enters flare when close to the deck. During flare, the FAA term increases roll and pitch tracking weights to force attitude synchronization.
+
+\section{Evaluation Metrics}
+The touchdown position error is
+\begin{equation}
+e_p=\sqrt{(x_c-x_b)^2+(y_c-y_b)^2}.
+\end{equation}
+The horizontal velocity error is
+\begin{equation}
+e_v=\sqrt{(v_x-u_b)^2+(v_y-v_b)^2}.
+\end{equation}
+The attitude errors are
+\begin{align}
+e_\phi&=\mathrm{wrap}_{\pi}(\phi_c-\phi_b),\\
+e_\theta&=\mathrm{wrap}_{\pi}(\theta_c-\theta_b),\\
+e_\psi&=\mathrm{wrap}_{\pi}(\psi_c-\psi_b).
+\end{align}
+Additional metrics include touchdown time, vertical impact velocity, constraint violations, and success rate over Monte Carlo trials.
+
+\section{Expected Results}
+Based on the reverse-engineered model and the reference paper, the expected behavior is:
+\begin{itemize}
+    \item the UAV reaches the approach altitude before moving toward the USV;
+    \item the UAV tracks the USV position during the follow phase;
+    \item the UAV descends only after landing conditions are satisfied;
+    \item roll and pitch errors decrease significantly during flare;
+    \item touchdown occurs with bounded position error and safe vertical velocity;
+    \item Monte Carlo trials produce statistical measures comparable to the paper's analysis.
+\end{itemize}
+
+\section{Discussion of Trade-Offs}
+The uncertainty-aware MPC design introduces a trade-off between robustness and performance. Larger uncertainty bounds improve safety but tighten the feasible state and input sets. This may increase landing time or tracking error. Smaller uncertainty bounds improve tracking but reduce protection against disturbances. The FAA mechanism also introduces a deliberate trade-off: near touchdown, attitude alignment is prioritized over aggressive position tracking to reduce the risk of landing on one leg or tipping after touchdown.
+
+\chapter{Conclusions}
+
+\section{Summary of Contributions}
+This research developed and documented an uncertainty-aware MPC framework for constrained nonlinear UAV landing. A published MPC-based UAV landing paper was reverse engineered into a MATLAB/Simulink implementation and a complete mathematical model. The resulting formulation includes UAV dynamics, USV wave prediction, input-increment MPC, dynamic FAA weighting, mission-state-based reference generation, state and input constraints, and landing performance metrics.
+
+\section{Key Findings}
+The study shows that:
+\begin{enumerate}
+    \item MPC provides a systematic way to handle UAV landing constraints;
+    \item predicted USV states are essential for landing on a moving boat;
+    \item input-increment MPC avoids unnecessary penalization of hover thrust;
+    \item FAA improves attitude synchronization during the final flare maneuver;
+    \item robust constraint tightening provides a principled path toward uncertainty-aware safety guarantees;
+    \item MATLAB/Simulink is suitable for reproducing and presenting the method.
+\end{enumerate}
+
+\section{Limitations and Future Work}
+The main limitation is that the complete hydrodynamic USV parameters, sensor fusion architecture, and low-level MRS/Pixhawk controller used in the reference paper are not fully published. Therefore, the implementation uses a documented Gerstner-wave-inspired USV predictor and a linearized UAV model suitable for MPC demonstration. Future work should include experimental parameter identification, higher-fidelity Simulink plant modeling, onboard solver benchmarking, adaptive uncertainty estimation, and hardware-in-the-loop validation.
+
+\begin{thebibliography}{99}
+
+\bibitem{panjavarnam2025}
+R. Panjavarnam, S. K. Gupta, and M. Kothari,
+``A survey on model predictive control techniques for autonomous UAV landing,''
+\emph{Annual Reviews in Control}, vol. 59, pp. 100--132, 2025.
+
+\bibitem{leeman2025}
+J. Leeman, M. Cannon, and B. Kouvaritakis,
+``Tube based robust nonlinear model predictive control,''
+2025.
+
+\bibitem{wehbeh2025}
+J. Wehbeh and E. C. Kerrigan,
+``Sensitivity based robust model predictive control for constrained nonlinear systems,''
+2025.
+
+\bibitem{aryan2025}
+S. Aryan,
+``Stochastic nonlinear model predictive control with chance constraints for aerospace systems,''
+2025.
+
+\bibitem{saviolo2024}
+L. Saviolo, M. Rosolia, and F. Borrelli,
+``Active learning based model predictive control for uncertain systems,''
+2024.
+
+\bibitem{batool2025}
+S. Batool, A. Richards, and J. Alonso-Mora,
+``Safety integrated nonlinear model predictive control for precision UAV landing,''
+\emph{IEEE Robotics and Automation Letters}, vol. 10, no. 1, pp. 1123--1130, 2025.
+
+\bibitem{stephenson2024}
+R. Stephenson, T. Molnar, and P. Campoy,
+``Learning based distributed model predictive control for cooperative UAV landing on moving platforms,''
+\emph{Autonomous Robots}, vol. 48, no. 3, pp. 287--303, 2024.
+
+\bibitem{ru2017}
+P. Ru and K. Subbarao,
+``Nonlinear control of quadrotor UAVs using backstepping and feedback linearization,''
+2017.
+
+\bibitem{prochazka2024}
+O. Prochazka, F. Novak, T. Baca, P. M. Gupta, R. Penicka, and M. Saska,
+``Model predictive control-based trajectory generation for agile landing of unmanned aerial vehicle on a moving boat,''
+\emph{Ocean Engineering}, 2024.
+
+\bibitem{fossen2011}
+T. I. Fossen,
+\emph{Handbook of Marine Craft Hydrodynamics and Motion Control}.
+Wiley, 2011.
+
+\bibitem{rawlings2000}
+J. B. Rawlings,
+``Tutorial overview of model predictive control,''
+\emph{IEEE Control Systems Magazine}, vol. 20, no. 3, pp. 38--52, 2000.
+
+\bibitem{tessendorf2001}
+J. Tessendorf,
+``Simulating ocean water,''
+SIGGRAPH Course Notes, 2001.
+
+\end{thebibliography}
+
+\end{document}

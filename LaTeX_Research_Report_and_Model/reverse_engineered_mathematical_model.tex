@@ -1,0 +1,652 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsfonts,bm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{siunitx}
+\usepackage{mathtools}
+\usepackage{float}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue
+}
+
+\title{\textbf{Complete Mathematical Model for Reverse Engineering an MPC-Based UAV Landing System on a Moving Boat}}
+\author{
+Oyetunde Jamiu Olaide\\
+Faculty of Control Systems and Robotics\\
+ITMO University\\
+\texttt{oyejam@gmail.com}
+}
+\date{2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This document presents the complete mathematical model used to reverse engineer the trajectory generation method described in the paper \emph{Model predictive control-based trajectory generation for agile landing of unmanned aerial vehicle on a moving boat}. The model is developed in a form suitable for MATLAB and Simulink implementation. It includes the unmanned surface vehicle (USV) motion model, the multirotor unmanned aerial vehicle (UAV) rigid-body model, the hover-linearized prediction model, the augmented input-increment model, the model predictive control (MPC) optimization problem, dynamic penalization through forcing attitude alignment (FAA), mission-state-dependent reference generation, constraints, and performance metrics. The formulation is written as a self-contained mathematical reference for reproducing the simulation code and for presenting the reverse engineering procedure in a research report.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+\section{Introduction}
+
+Autonomous UAV landing on a moving maritime platform is a constrained nonlinear control problem. The UAV must track the position and velocity of the USV, synchronize attitude with the tilting deck during the final landing maneuver, and satisfy strict actuator and state constraints. The reverse-engineered paper proposes a linear MPC trajectory generator around a hover-equilibrium UAV model, using predicted USV states over a finite horizon. A key feature is the dynamic modification of MPC state-weighting matrices during the final flare phase, so that roll and pitch alignment become increasingly important as the UAV approaches the deck.
+
+The MATLAB/Simulink implementation developed from this model is organized around the following components:
+\begin{enumerate}[label=\arabic*.]
+    \item physical and simulation parameters;
+    \item USV motion and wave prediction;
+    \item UAV linearized dynamics around hover;
+    \item augmented input-increment MPC model;
+    \item state-machine-based reference generation;
+    \item FAA dynamic weighting;
+    \item constrained quadratic programming;
+    \item landing performance evaluation.
+\end{enumerate}
+
+\section{Coordinate Frames and Notation}
+
+Let $\mathcal{W}$ denote the local inertial East-North-Up (ENU) frame. Let $\mathcal{C}$ denote the UAV body-fixed frame and $\mathcal{B}$ denote the USV body-fixed frame. The UAV pose in $\mathcal{W}$ is represented by position and Euler attitude:
+\begin{equation}
+\bm{\eta}_c =
+\begin{bmatrix}
+\bm{\eta}_{pc}\\
+\bm{\eta}_{oc}
+\end{bmatrix}
+=
+\begin{bmatrix}
+x_c & y_c & z_c & \phi_c & \theta_c & \psi_c
+\end{bmatrix}^{\top},
+\end{equation}
+where $(x_c,y_c,z_c)$ is position and $(\phi_c,\theta_c,\psi_c)$ are roll, pitch, and yaw angles.
+
+The UAV velocity vector is
+\begin{equation}
+\bm{\nu}_c =
+\begin{bmatrix}
+\bm{\nu}_l\\
+\bm{\nu}_a
+\end{bmatrix}
+=
+\begin{bmatrix}
+v_x & v_y & v_z & v_\phi & v_\theta & v_\psi
+\end{bmatrix}^{\top}.
+\end{equation}
+
+The complete UAV state used by the MPC is
+\begin{equation}
+\bm{x} =
+\begin{bmatrix}
+x_c & y_c & z_c & \phi_c & \theta_c & \psi_c &
+v_x & v_y & v_z & v_\phi & v_\theta & v_\psi
+\end{bmatrix}^{\top} \in \mathbb{R}^{12}.
+\label{eq:uav_state}
+\end{equation}
+
+The USV predicted state has the same output structure:
+\begin{equation}
+\bm{r} =
+\begin{bmatrix}
+x_b & y_b & z_b & \phi_b & \theta_b & \psi_b &
+u_b & v_b & w_b & p_b & q_b & r_b
+\end{bmatrix}^{\top}.
+\end{equation}
+
+\section{USV Motion and Wave Model}
+
+\subsection{General USV Prediction Model}
+
+The reverse-engineered paper describes the USV using a six-degree-of-freedom model based on Fossen's marine craft formulation. The generalized position and velocity are
+\begin{equation}
+\bm{\eta}_{L} =
+\begin{bmatrix}
+x_b & y_b & z_b & \phi_b & \theta_b & \psi_b
+\end{bmatrix}^{\top}, \qquad
+\bm{\nu} =
+\begin{bmatrix}
+u_b & v_b & w_b & p_b & q_b & r_b
+\end{bmatrix}^{\top}.
+\end{equation}
+
+The continuous USV model can be written as
+\begin{align}
+\dot{\bm{\eta}}_{L} &= \bm{\nu}, \label{eq:usv_eta}\\
+\dot{\bm{\nu}} &= -\bm{M}^{-1}(\bm{D}\bm{\nu}+\bm{G}\bm{\eta}_{L}) + \bm{C}_{wave,\nu}\bm{x}_{wave,\nu}, \label{eq:usv_nu}\\
+\dot{\bm{x}}_{wave,\nu} &= \bm{A}_{wave,\nu}\bm{x}_{wave,\nu}, \label{eq:wave_state}
+\end{align}
+where $\bm{M}=\bm{M}_{RB}+\bm{M}_{A}$ is the combined rigid-body and added-mass matrix, $\bm{D}$ is damping, $\bm{G}$ contains restoring forces, and $\bm{x}_{wave,\nu}$ represents wave-induced states.
+
+In the MATLAB implementation, the full hydrodynamic identification of $\bm{M}$, $\bm{D}$, and $\bm{G}$ is not available from the paper. Therefore, a kinematic USV predictor is used for reproducible simulation, while preserving the same predicted output variables required by the MPC.
+
+\subsection{Gerstner-Wave Deck Motion}
+
+The sea surface is modeled as a sum of $N_w$ wave components. For an undisturbed horizontal point $\bm{x}_0=[x_0,y_0]^{\top}$, the horizontal displacement and vertical elevation are
+\begin{align}
+\bm{x}(\bm{x}_0,t)
+&= \bm{x}_0 -
+\sum_{i=1}^{N_w}
+q_i \frac{\bm{v}_i}{\|\bm{v}_i\|}
+A_i
+\sin(\bm{v}_i^{\top}\bm{x}_0-\omega_{wi}t+\varphi_i), \\
+\zeta(\bm{x}_0,t)
+&=
+\sum_{i=1}^{N_w}
+A_i
+\cos(\bm{v}_i^{\top}\bm{x}_0-\omega_{wi}t+\varphi_i),
+\end{align}
+where $A_i$ is amplitude, $\omega_{wi}=2\pi/T_i$ is angular frequency, $T_i$ is period, $\varphi_i$ is phase, $q_i$ is steepness, and $\bm{v}_i$ is the wave vector.
+
+For the implemented deck predictor, the USV deck position is approximated by
+\begin{equation}
+\bm{p}_b(t)=
+\bm{p}_{b0}+\bm{v}_{current}t+
+\begin{bmatrix}
+x_{wave}(t)\\
+y_{wave}(t)\\
+h_{deck}+z_{wave}(t)
+\end{bmatrix},
+\end{equation}
+with
+\begin{align}
+x_{wave}(t)&=-\sum_{i=1}^{N_w}q_i\cos(\gamma_i)A_i\sin(-\omega_i t+\varphi_i),\\
+y_{wave}(t)&=-\sum_{i=1}^{N_w}q_i\sin(\gamma_i)A_i\sin(-\omega_i t+\varphi_i),\\
+z_{wave}(t)&=\sum_{i=1}^{N_w}A_i\cos(-\omega_i t+\varphi_i),
+\end{align}
+where $\gamma_i$ is wave travel direction.
+
+The induced deck attitude is approximated by
+\begin{align}
+\phi_b(t) &= \sum_{i=1}^{N_w} k_{\phi} A_i \sin(\gamma_i)\sin(-\omega_i t+\varphi_i),\\
+\theta_b(t) &= \sum_{i=1}^{N_w} k_{\theta} A_i \cos(\gamma_i)\sin(-\omega_i t+\varphi_i),\\
+\psi_b(t) &= \psi_{b0}+k_{\psi}\sin(\omega_{\psi}t).
+\end{align}
+The derivatives of these expressions provide the predicted linear velocity and Euler rates required by the MPC horizon.
+
+\section{UAV Nonlinear Model}
+
+\subsection{Translational Dynamics}
+
+The UAV is modeled as a rigid multirotor. Its translational kinematics are
+\begin{equation}
+\dot{\bm{\eta}}_{pc}=\bm{\nu}_l.
+\end{equation}
+The translational acceleration is
+\begin{equation}
+\ddot{\bm{\eta}}_{pc}
+=
+-g\bm{e}_3+
+\frac{1}{m}\bm{R}^{w}_{c}\bm{T}_c,
+\end{equation}
+where $g$ is gravitational acceleration, $m$ is mass, $\bm{e}_3=[0,0,1]^{\top}$, and $\bm{R}^{w}_{c}$ maps body-frame vectors to the world frame.
+
+For a quadrotor, total thrust is
+\begin{equation}
+\bm{T}_c =
+\begin{bmatrix}
+0\\
+0\\
+k_T\sum_{i=1}^{4}\omega_i^2
+\end{bmatrix},
+\end{equation}
+where $k_T$ is the thrust coefficient and $\omega_i$ is the angular velocity of rotor $i$.
+
+\subsection{Rotational Dynamics}
+
+The rotational kinematics are
+\begin{equation}
+\dot{\bm{\eta}}_{oc}=\bm{\nu}_a.
+\end{equation}
+The angular acceleration in Euler-rate coordinates can be expressed as
+\begin{equation}
+\ddot{\bm{\eta}}_{oc}
+=
+\left(\bm{T}^{w}_{c}\bm{I}_{c}\bm{T}^{c}_{w}\right)^{-1}
+\left(\bm{\tau}_{c}-\bm{C}_{t}\dot{\bm{\eta}}_{oc}\right),
+\end{equation}
+where $\bm{I}_{c}=\mathrm{diag}(I_{xx},I_{yy},I_{zz})$ is the inertia matrix, $\bm{\tau}_c$ is the rotor-generated torque vector, and $\bm{C}_{t}$ contains gyroscopic and centripetal effects.
+
+\section{Hover Linearization}
+
+The MPC trajectory generator uses a linear model around hover. At hover,
+\begin{equation}
+k_T\sum_{i=1}^{4}\omega_{hi}^{2}=mg.
+\end{equation}
+For a symmetric quadrotor,
+\begin{equation}
+\omega_{h1}^{2}=\omega_{h2}^{2}=\omega_{h3}^{2}=\omega_{h4}^{2}
+=\frac{mg}{4k_T}.
+\end{equation}
+
+The continuous-time linearized system is
+\begin{equation}
+\dot{\bm{x}}(t)=\bm{A}_c\bm{x}(t)+\bm{B}_c\bm{u}(t),
+\label{eq:continuous_linear_model}
+\end{equation}
+where the input is the deviation from hover squared rotor speed:
+\begin{equation}
+\bm{u}(t)=
+\begin{bmatrix}
+\omega_1^2-\omega_h^2 &
+\omega_2^2-\omega_h^2 &
+\omega_3^2-\omega_h^2 &
+\omega_4^2-\omega_h^2
+\end{bmatrix}^{\top}.
+\end{equation}
+
+Using small-angle hover assumptions, the state matrix has the structure
+\begin{equation}
+\bm{A}_c =
+\begin{bmatrix}
+\bm{0}_{6\times 6} & \bm{I}_{6}\\
+\bm{A}_{p} & \bm{0}_{6\times 6}
+\end{bmatrix},
+\end{equation}
+where the dominant small-angle translational coupling terms are
+\begin{equation}
+\dot{v}_x \approx g\theta_c,\qquad
+\dot{v}_y \approx -g\phi_c.
+\end{equation}
+Thus,
+\begin{equation}
+A_c(7,5)=g,\qquad A_c(8,4)=-g,
+\end{equation}
+with kinematic entries $A_c(1,7)=A_c(2,8)=A_c(3,9)=A_c(4,10)=A_c(5,11)=A_c(6,12)=1$.
+
+The input matrix is
+\begin{equation}
+\bm{B}_c =
+\begin{bmatrix}
+\bm{0}_{8\times 4}\\
+\frac{k_T}{m} & \frac{k_T}{m} & \frac{k_T}{m} & \frac{k_T}{m}\\
+-\frac{k_Tl}{I_{xx}} & -\frac{k_Tl}{I_{xx}} & \frac{k_Tl}{I_{xx}} & \frac{k_Tl}{I_{xx}}\\
+-\frac{k_Tl}{I_{yy}} & \frac{k_Tl}{I_{yy}} & \frac{k_Tl}{I_{yy}} & -\frac{k_Tl}{I_{yy}}\\
+-\frac{b}{I_{zz}} & \frac{b}{I_{zz}} & -\frac{b}{I_{zz}} & \frac{b}{I_{zz}}
+\end{bmatrix}.
+\label{eq:input_matrix}
+\end{equation}
+Here $l$ is arm length and $b$ is the rotor drag coefficient.
+
+\section{Discrete-Time Prediction Model}
+
+With sampling time $T_s$, the exact zero-order-hold discretization is
+\begin{equation}
+\begin{bmatrix}
+\bm{A} & \bm{B}\\
+\bm{0} & \bm{I}
+\end{bmatrix}
+=
+\exp\left(
+\begin{bmatrix}
+\bm{A}_c & \bm{B}_c\\
+\bm{0} & \bm{0}
+\end{bmatrix}T_s
+\right).
+\end{equation}
+The discrete prediction model is
+\begin{equation}
+\bm{x}_{k+1}=\bm{A}\bm{x}_{k}+\bm{B}\bm{u}_{k}.
+\label{eq:discrete_model}
+\end{equation}
+
+\section{Input-Increment Augmented Model}
+
+The paper avoids penalizing absolute hover input by formulating the MPC in terms of input increments. Define
+\begin{equation}
+\Delta\bm{u}_k=\bm{u}_k-\bm{u}_{k-1}.
+\end{equation}
+Introduce the augmented state
+\begin{equation}
+\bm{x}_{a,k}=
+\begin{bmatrix}
+\bm{x}_k\\
+\bm{u}_{k-1}
+\end{bmatrix}.
+\end{equation}
+Then,
+\begin{equation}
+\bm{x}_{a,k+1}=
+\bm{A}_a\bm{x}_{a,k}+\bm{B}_a\Delta\bm{u}_k,
+\end{equation}
+where
+\begin{equation}
+\bm{A}_a=
+\begin{bmatrix}
+\bm{A} & \bm{B}\\
+\bm{0}_{m\times n} & \bm{I}_{m}
+\end{bmatrix},\qquad
+\bm{B}_a=
+\begin{bmatrix}
+\bm{B}\\
+\bm{I}_{m}
+\end{bmatrix}.
+\end{equation}
+The output equation is
+\begin{equation}
+\bm{y}_k=\bm{C}_a\bm{x}_{a,k},\qquad
+\bm{C}_a=
+\begin{bmatrix}
+\bm{C} & \bm{0}_{p\times m}
+\end{bmatrix},
+\end{equation}
+where $\bm{C}=\bm{I}_{12}$ in the implementation.
+
+\section{Prediction Matrices}
+
+For horizon length $N$, stack the future outputs and input increments:
+\begin{equation}
+\bm{Y}=
+\begin{bmatrix}
+\bm{y}_{k+1}\\
+\bm{y}_{k+2}\\
+\vdots\\
+\bm{y}_{k+N}
+\end{bmatrix},\qquad
+\Delta\bm{U}=
+\begin{bmatrix}
+\Delta\bm{u}_{k}\\
+\Delta\bm{u}_{k+1}\\
+\vdots\\
+\Delta\bm{u}_{k+N-1}
+\end{bmatrix}.
+\end{equation}
+Then,
+\begin{equation}
+\bm{Y}=\bm{\Phi}_Y\bm{x}_{a,k}+\bm{\Gamma}_Y\Delta\bm{U},
+\label{eq:prediction_output}
+\end{equation}
+where $\bm{\Phi}_Y$ and $\bm{\Gamma}_Y$ are built from powers of $\bm{A}_a$ and $\bm{B}_a$.
+
+\section{MPC Cost Function}
+
+Let the stacked reference be
+\begin{equation}
+\bm{R}=
+\begin{bmatrix}
+\bm{r}_{k+1}\\
+\bm{r}_{k+2}\\
+\vdots\\
+\bm{r}_{k+N}
+\end{bmatrix}.
+\end{equation}
+The tracking error is
+\begin{equation}
+\bm{E}=\bm{Y}-\bm{R}.
+\end{equation}
+The quadratic cost is
+\begin{equation}
+J(\Delta\bm{U})
+=
+\frac{1}{2}\bm{E}^{\top}\bar{\bm{Q}}\bm{E}
++
+\frac{1}{2}\Delta\bm{U}^{\top}\bar{\bm{R}}\Delta\bm{U},
+\end{equation}
+where
+\begin{equation}
+\bar{\bm{Q}}=\mathrm{blkdiag}(\bm{Q}_1,\ldots,\bm{Q}_N),\qquad
+\bar{\bm{R}}=\mathrm{kron}(\bm{I}_{N},\bm{R}_{\Delta u}).
+\end{equation}
+
+Substituting \eqref{eq:prediction_output}, the standard QP form becomes
+\begin{equation}
+\min_{\Delta\bm{U}}
+\frac{1}{2}\Delta\bm{U}^{\top}\bm{H}\Delta\bm{U}
+\bm{f}^{\top}\Delta\bm{U},
+\end{equation}
+with
+\begin{align}
+\bm{H} &= \bm{\Gamma}_Y^{\top}\bar{\bm{Q}}\bm{\Gamma}_Y+\bar{\bm{R}},\\
+\bm{f} &= \bm{\Gamma}_Y^{\top}\bar{\bm{Q}}
+\left(\bm{\Phi}_Y\bm{x}_{a,k}-\bm{R}\right).
+\end{align}
+
+\section{Dynamic State Weighting and FAA}
+
+The paper uses a dynamic exponential weighting function to prioritize attitude alignment near touchdown:
+\begin{equation}
+f(v_d)=1+\frac{\alpha}{e^{\beta v_d}},
+\label{eq:faa}
+\end{equation}
+where $v_d$ is the vertical distance between the UAV and USV deck.
+
+The implemented diagonal state weight is
+\begin{equation}
+\bm{Q}(v_d)=\mathrm{diag}
+\left(
+q_x,q_y,q_z(v_d),q_{\phi}(v_d),q_{\theta}(v_d),q_{\psi},
+q_{v_x},q_{v_y},q_{v_z}(v_d),q_{v_\phi},q_{v_\theta},q_{v_\psi}
+\right).
+\end{equation}
+Using the reverse-engineered values,
+\begin{align}
+q_z(v_d)&=40+\frac{10000}{e^{20v_d}},\\
+q_{\phi}(v_d)&=1+\frac{50000}{e^{10v_d}},\\
+q_{\theta}(v_d)&=1+\frac{50000}{e^{10v_d}},\\
+q_{v_z}(v_d)&=3000+\frac{3000}{e^{25v_d}}.
+\end{align}
+
+This mechanism is called forcing attitude alignment because the UAV increasingly prioritizes roll and pitch synchronization as it approaches the tilting deck.
+
+\section{State and Input Constraints}
+
+The state constraints used in the implementation are
+\begin{align}
+-0.7854 &\leq \phi_c,\theta_c \leq 0.7854,\\
+-8 &\leq v_x,v_y \leq 8 \quad \si{m.s^{-1}},\\
+-4 &\leq v_z \leq 4 \quad \si{m.s^{-1}},\\
+-2 &\leq v_{\phi},v_{\theta},v_{\psi} \leq 2 \quad \si{rad.s^{-1}}.
+\end{align}
+The rotor-squared inputs satisfy
+\begin{equation}
+\bm{u}_{min}\leq \bm{u}_k+\bm{u}_{hover}\leq \bm{u}_{max},
+\end{equation}
+and the input increments satisfy
+\begin{equation}
+\Delta\bm{u}_{min}\leq \Delta\bm{u}_k\leq \Delta\bm{u}_{max}.
+\end{equation}
+
+\section{Reference Generation by Mission State}
+
+The state machine contains:
+\begin{equation}
+\mathcal{M}=
+\{\mathrm{GET\_ALTITUDE},\mathrm{APPROACH},\mathrm{TRACKING},
+\mathrm{TRACKING\_STABLE},\mathrm{DESCENT},\mathrm{FLARE},\mathrm{LANDED}\}.
+\end{equation}
+
+\subsection{Navigation Phase}
+During \texttt{GET\_ALTITUDE}, the reference is
+\begin{equation}
+\bm{r}=
+\begin{bmatrix}
+x_c & y_c & h_a & 0 & 0 & \psi_{target} & 0 & 0 & 0 & 0 & 0 & 0
+\end{bmatrix}^{\top},
+\end{equation}
+where $h_a=\SI{15}{m}$.
+
+During \texttt{APPROACH},
+\begin{equation}
+r_x=x_b,\qquad r_y=y_b,\qquad r_z=h_a.
+\end{equation}
+
+\subsection{Follow Phase}
+During \texttt{TRACKING} and \texttt{TRACKING\_STABLE},
+\begin{equation}
+r_x=x_b,\quad r_y=y_b,\quad r_z=z_b+h_t,\quad
+\bm{r}_{v}=\bm{v}_b,
+\end{equation}
+where $h_t=\SI{7}{m}$ is the tracking altitude.
+
+\subsection{Landing Phase}
+During \texttt{DESCENT}, the vertical reference decreases relative to the deck:
+\begin{equation}
+r_z(k+i)=z_b(k+i)+\max(h_f,z_c(k)-z_b(k)-v_{la}iT_s),
+\end{equation}
+where $v_{la}=\SI{1}{m.s^{-1}}$ and $h_f$ is the flare height.
+
+During \texttt{FLARE}, the MPC tracks full deck pose and rates:
+\begin{equation}
+\bm{r}_{k+i}=
+\begin{bmatrix}
+x_b & y_b & z_b+d_i & \phi_b & \theta_b & \psi_b &
+u_b & v_b & w_b-v_{fa} & p_b & q_b & r_b
+\end{bmatrix}^{\top},
+\end{equation}
+where $v_{fa}=\SI{0.5}{m.s^{-1}}$ and $d_i$ is a decreasing deck clearance.
+
+\section{Complete Online Algorithm}
+
+\begin{algorithm}[H]
+\caption{Reverse-engineered MPC-FAA landing algorithm}
+\begin{algorithmic}[1]
+\State Initialize parameters, UAV model, MPC prediction matrices.
+\State Set initial UAV state $\bm{x}_0$ and previous input $\bm{u}_{-1}$.
+\For{$k=0,1,2,\ldots$}
+    \State Predict USV deck states $\bm{r}_{k+1},\ldots,\bm{r}_{k+N}$.
+    \State Update mission state $m_k$ using UAV-USV relative position and deck distance.
+    \State Generate full-state reference horizon $\bm{R}$ based on $m_k$.
+    \State Compute deck distance $v_d=z_c-z_b$.
+    \State Construct dynamic weight matrix $\bm{Q}(v_d,m_k)$.
+    \State Build QP matrices $\bm{H}$ and $\bm{f}$.
+    \State Solve constrained QP for $\Delta\bm{U}^{\star}$.
+    \State Apply first input increment:
+    \[
+        \bm{u}_{k}=\bm{u}_{k-1}+\Delta\bm{u}_{k}^{\star}.
+    \]
+    \State Propagate UAV model:
+    \[
+        \bm{x}_{k+1}=\bm{A}\bm{x}_{k}+\bm{B}\bm{u}_{k}.
+    \]
+    \If{touchdown condition is satisfied}
+        \State stop motors and set mode to \texttt{LANDED}.
+    \EndIf
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+\section{Parameter Summary}
+
+\begin{table}[H]
+\centering
+\caption{Main simulation parameters used in the reverse-engineered MATLAB model.}
+\begin{tabular}{lll}
+\toprule
+Symbol & Value & Meaning\\
+\midrule
+$m$ & \SI{3.5}{kg} & UAV mass\\
+$l$ & \SI{0.325}{m} & UAV arm length\\
+$h_a$ & \SI{15}{m} & approach altitude\\
+$h_t$ & \SI{7}{m} & tracking altitude\\
+$v_{la}$ & \SI{1}{m.s^{-1}} & descent approach velocity\\
+$v_{fa}$ & \SI{0.5}{m.s^{-1}} & flare approach velocity\\
+$N$ & 20 & prediction horizon steps\\
+$T_s$ & \SI{0.1}{s} & MPC sampling time\\
+$T_h$ & \SI{2}{s} & prediction horizon duration\\
+$R_{\Delta u}$ & $0.1I_4$ & input-increment penalty\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Landing Performance Metrics}
+
+At touchdown, the position deviation is
+\begin{equation}
+e_p=\left\|
+\begin{bmatrix}
+x_c-x_b\\
+y_c-y_b
+\end{bmatrix}
+\right\|_2.
+\end{equation}
+The horizontal velocity deviation is
+\begin{equation}
+e_v=\left\|
+\begin{bmatrix}
+v_x-u_b\\
+v_y-v_b
+\end{bmatrix}
+\right\|_2.
+\end{equation}
+The attitude errors are
+\begin{align}
+e_{\phi}&=\mathrm{wrap}_{\pi}(\phi_c-\phi_b),\\
+e_{\theta}&=\mathrm{wrap}_{\pi}(\theta_c-\theta_b),\\
+e_{\psi}&=\mathrm{wrap}_{\pi}(\psi_c-\psi_b).
+\end{align}
+The landing is considered successful when
+\begin{equation}
+e_p \leq e_{p,\max},\qquad
+|v_z-w_b| \leq v_{z,\max},\qquad
+|e_{\phi}|,|e_{\theta}|,|e_{\psi}| \leq e_{\eta,\max}.
+\end{equation}
+
+\section{Connection to MATLAB/Simulink Files}
+
+\begin{table}[H]
+\centering
+\caption{Mapping between mathematical model and MATLAB files.}
+\begin{tabular}{p{0.35\linewidth}p{0.55\linewidth}}
+\toprule
+MATLAB file & Mathematical role\\
+\midrule
+\texttt{initialize\_paper\_parameters.m} & Defines physical parameters, horizon, constraints, and weights.\\
+\texttt{build\_uav\_linear\_model.m} & Implements $\bm{A}_c$, $\bm{B}_c$, $\bm{A}$, and $\bm{B}$.\\
+\texttt{discretize\_uav\_model.m} & Performs zero-order-hold discretization.\\
+\texttt{build\_prediction\_matrices.m} & Constructs $\bm{\Phi}_Y$ and $\bm{\Gamma}_Y$.\\
+\texttt{gerstner\_usv\_motion.m} & Generates USV predicted pose, velocity, and Euler rates.\\
+\texttt{create\_reference\_trajectory.m} & Builds $\bm{R}$ for each state-machine mode.\\
+\texttt{faa\_weight\_matrix.m} & Implements Eq.~\eqref{eq:faa}.\\
+\texttt{solve\_mpc\_qp.m} & Solves the constrained QP.\\
+\texttt{simulate\_landing\_trial.m} & Executes closed-loop MPC simulation.\\
+\texttt{build\_simulink\_model.m} & Creates the Simulink harness.\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Conclusion}
+
+The reverse-engineered mathematical model reconstructs the essential control architecture of the MPC-based UAV landing paper. The model combines USV state prediction, hover-linearized UAV dynamics, input-increment MPC, mission-state-dependent reference generation, and FAA dynamic weighting. This formulation provides a defensible research basis for the MATLAB/Simulink simulation and supports further extension toward uncertainty-aware MPC, robust constraint tightening, and real-world UAV landing validation.
+
+\begin{thebibliography}{9}
+
+\bibitem{prochazka2024}
+O. Prochazka, F. Novak, T. Baca, P. M. Gupta, R. Penicka, and M. Saska,
+``Model predictive control-based trajectory generation for agile landing of unmanned aerial vehicle on a moving boat,''
+\emph{Ocean Engineering}, 2024.
+
+\bibitem{fossen2011}
+T. I. Fossen,
+\emph{Handbook of Marine Craft Hydrodynamics and Motion Control}.
+Wiley, 2011.
+
+\bibitem{rawlings2000}
+J. B. Rawlings,
+``Tutorial overview of model predictive control,''
+\emph{IEEE Control Systems Magazine}, vol. 20, no. 3, pp. 38--52, 2000.
+
+\bibitem{raffa2010}
+G. V. Raffo, M. G. Ortega, and F. R. Rubio,
+``An integral predictive/nonlinear H-infinity control structure for a quadrotor helicopter,''
+\emph{Automatica}, vol. 46, no. 1, pp. 29--39, 2010.
+
+\bibitem{tessendorf2001}
+J. Tessendorf,
+``Simulating ocean water,''
+SIGGRAPH Course Notes, 2001.
+
+\end{thebibliography}
+
+\end{document}

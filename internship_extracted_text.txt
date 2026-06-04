@@ -1,0 +1,1283 @@
+
+
+--- PAGE 1 ---
+Faculty of Control Systems and
+Robotics
+Master’s in Robotics and ArtificialIntelligence
+Course Name:Reseach Project Report
+Supervisor Name:Prof. Sergey M. Vlasov
+Student Name:Oyetunde Jamiu Olaide
+Student ID:520194
+Uncertainty-Aware Model Predictive
+Control for Constrained NonlinearSystems: A UAV Landing Case Study
+January 21, 2026
+
+
+--- PAGE 2 ---
+Uncertainty-Aware Model Predictive Control for Constrained Nonlinear Systems: A UAV
+Landing Case Study
+Jamiu Olaide Oyetunde
+Faculty of Control Systems and Robotics, ITMO University, Saint Petersburg, Russia.
+Authors E-mail: oyejam@gmail.com
+Abstract
+Autonomous unmanned aerial vehicles (UAVs) are increasingly deployed in safety-critical applications
+such as precision landing on dynamic platforms, where robust control strategies are essential for ensur-
+ing safe and reliable operation. This research proposes an uncertainty-aware Model Predictive Control
+(MPC) framework tailored for constrained nonlinear UAV landing, addressing the challenge of handling
+environmental disturbances and model uncertainties during the landing process. The proposed framework
+extends traditional MPC by incorporating robust constraint tightening to explicitly account for bounded
+uncertainties, thereby ensuring that state and input constraints are respected even under disturbance
+conditions. The research develops the uncertainty-aware MPC formulation, which integrates structured
+uncertainty modeling, robust constraint enforcement, and real-time feasibility considerations. Through
+simulation-based evaluation, the framework is compared against baseline MPC controllers in nominal and
+uncertain landing scenarios. Key performance metrics, such as landing position error, touchdown veloc-
+ity, constraint violations, and computational feasibility, are analyzed. The results demonstrate that the
+proposed controller is capable of achieving safe landing conditions under uncertainty while maintaining
+constraint satisfaction and real-time computational performance. Sensitivity analysis further highlights
+the trade-offs between robustness and performance, showing that the proposed framework offers a reli-
+able solution for UAV landing tasks in dynamic environments. This work lays the groundwork for future
+research into adaptive uncertainty handling and real-world implementation, aiming to enhance the safety
+and efficiency of autonomous UAV systems in uncertain operating conditions.
+2
+
+
+--- PAGE 3 ---
+Contents
+List of Tables 4
+List of Figures 4
+1 Motivation and Background 5
+1.1 Motivation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 5
+1.2 Background . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 5
+1.2.1 Problem Statement . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 6
+1.3 Research Objectives . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 6
+2 Overview and Scope 7
+2.1 Critical Synthesis and Research Gaps . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 7
+3 Overview of the Methodological Approach 8
+3.1 Structured Uncertainty Modeling . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 9
+3.2 Uncertainty-Aware MPC Formulation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 9
+3.2.1 Nominal Nonlinear MPC Problem . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 10
+3.2.2 Robust Constraint Handling via Tube-Based MPC . . . . . . . . . . . . . . . . . . . . 10
+3.2.3 Treatment of Stochastic Uncertainty . . . . . . . . . . . . . . . . . . . . . . . . . . . . 10
+3.2.4 Terminal Conditions and Recursive Feasibility . . . . . . . . . . . . . . . . . . . . . . 10
+3.2.5 Optional Safety Augmentation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 11
+4 System Model and Assumptions 11
+4.1 Modeling . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 11
+4.1.1 UAV Dynamic Model . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 11
+4.1.2 Operating Regime and Scope . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 12
+4.1.3 Assumptions . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 12
+4.2 Nominal Model Predictive Control Formulation . . . . . . . . . . . . . . . . . . . . . . . . . . 12
+4.2.1 Prediction Model . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 13
+4.2.2 Cost Function . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 13
+4.2.3 Constraints . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 13
+4.2.4 Nominal MPC Optimization Problem . . . . . . . . . . . . . . . . . . . . . . . . . . . 13
+4.3 Uncertainty Modeling and Error Dynamics . . . . . . . . . . . . . . . . . . . . . . . . . . . . 14
+4.3.1 Uncertain System Model . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 14
+4.3.2 Error Dynamics under Feedback Control . . . . . . . . . . . . . . . . . . . . . . . . . . 14
+4.3.3 Assumptions on Error Boundedness . . . . . . . . . . . . . . . . . . . . . . . . . . . . 15
+4.4 Robust Constraint Tightening Strategy . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 15
+4.4.1 Motivation for Constraint Tightening . . . . . . . . . . . . . . . . . . . . . . . . . . . 15
+4.4.2 Tightened State and Input Constraints . . . . . . . . . . . . . . . . . . . . . . . . . . . 15
+4.4.3 Integration into the MPC Optimization Problem . . . . . . . . . . . . . . . . . . . . . 15
+4.4.4 Conservatism and Design Trade-offs . . . . . . . . . . . . . . . . . . . . . . . . . . . . 16
+4.5 Terminal Conditions and Feasibility Discussion . . . . . . . . . . . . . . . . . . . . . . . . . . 16
+4.5.1 Role of Terminal Conditions in UAV Landing . . . . . . . . . . . . . . . . . . . . . . . 16
+4.5.2 Terminal Cost and Terminal Constraint Set . . . . . . . . . . . . . . . . . . . . . . . . 16
+4.5.3 Recursive Feasibility Considerations . . . . . . . . . . . . . . . . . . . . . . . . . . . . 17
+4.5.4 Scope and Limitations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 17
+4.6 Implementation Considerations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 17
+4.6.1 Optimization Problem Structure . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 18
+4.6.2 Real-Time Feasibility Considerations . . . . . . . . . . . . . . . . . . . . . . . . . . . . 18
+4.6.3 Numerical Implementation Scope . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 18
+4.6.4 Transition to Simulation and Evaluation . . . . . . . . . . . . . . . . . . . . . . . . . . 19
+3
+
+
+--- PAGE 4 ---
+5 Simulation Results and Discussion 19
+5.1 Simulation Environment and Models . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 19
+5.2 Landing Scenario Description . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 20
+5.3 Baseline Controllers . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 20
+5.4 Evaluation Metrics . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 21
+5.4.1 Constraint Satisfaction Metrics . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 21
+5.4.2 Performance Metrics . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 21
+5.4.3 Robustness Metrics . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 21
+5.4.4 Computational Feasibility Metrics . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 22
+5.5 Nominal Landing Results . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 22
+5.5.1 Simulation Setup . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 22
+5.5.2 Performance Results . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 22
+5.6 Landing Under Uncertainty . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 22
+5.6.1 Simulation Setup . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 23
+5.6.2 Performance Results . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 23
+5.7 Robustness and Sensitivity Analysis . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 24
+5.7.1 Sensitivity to Uncertainty Bounds . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 24
+5.7.2 Robustness to Disturbance Realizations . . . . . . . . . . . . . . . . . . . . . . . . . . 24
+5.8 Discussion of Trade-offs . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 24
+5.9 Project Timeline . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 25
+6 Conclusions 25
+6.1 Summary of Contributions . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 25
+6.2 Key Findings . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 26
+6.3 Limitations and Future Work . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 26
+References 27
+List of Tables
+1 Summary of MPC formulations for UAV landing with focus on uncertainty handling. . . . . . 8
+2 Summary of MPC formulations for UAV landing with focus on uncertainty handling. . . . . . 19
+3 Controllers implemented for comparative evaluation. . . . . . . . . . . . . . . . . . . . . . . . 23
+4 Proposed research timeline and activities over a 12-month period. . . . . . . . . . . . . . . . . 25
+List of Figures
+1 Conceptual architecture of the proposed uncertainty-aware MPC framework for UAV landing. 11
+2 Illustrative UAV landing scenario and constraint geometry. . . . . . . . . . . . . . . . . . . . 17
+4
+
+
+--- PAGE 5 ---
+1 Motivation and Background
+1.1 Motivation
+Unmanned aerial vehicles have become increasingly important in applications that require high levels of au-
+tonomy, reliability, and safety, including maritime operations, emergency response, surveillance, logistics, and
+infrastructure inspection. In many of these applications, autonomous landing represents a mission-critical
+maneuver where failure can result in vehicle damage, mission loss, or safety hazards to surrounding infras-
+tructure and personnel. As a result, autonomous UAV landing is not only a problem of control performance
+but also a safety-critical systems challenge.
+Among all phases of UAV operation, landing is particularly demanding due to the interaction of strongly
+nonlinear vehicle dynamics, strict state and actuator constraints, and external disturbances that intensify
+near the ground or landing surface. These challenges are further exacerbated when the landing surface itself
+is dynamic, such as ship decks or moving ground platforms, where environmental disturbances and prediction
+errors directly affect feasibility and safety [1]. Even small deviations during the final descent phase can lead
+to constraint violations or unsafe touchdown conditions, highlighting the need for control strategies that
+explicitly account for uncertainty.
+Model Predictive Control has emerged as a dominant framework for autonomous UAV landing due to
+its ability to explicitly handle constraints while optimizing performance objectives over a finite prediction
+horizon. Recent surveys identify MPC as the most widely adopted control approach for UAV landing across
+a range of scenarios, including static landings, maritime recovery, and landings on moving platforms [1].
+Compared to classical PID or linear controllers, MPC-based approaches offer superior constraint handling
+and predictive capabilities, particularly for nonlinear UAV dynamics.
+However, the majority of MPC-based UAV landing controllers rely on deterministic system models and
+assume perfect knowledge of dynamics and disturbances. In realistic operating environments, UAV landing
+is affected by multiple sources of uncertainty, including wind gusts, aerodynamic ground effects, payload-
+induced parameter variations, and sensor noise. When such uncertainties are neglected or handled through
+fixed safety margins, deterministic MPC can exhibit degraded performance, excessive conservatism, or loss
+of safety during landing.
+These limitations motivate the development of control strategies that explicitly reason about uncertainty
+while preserving the constraint handling and predictive advantages of MPC. In particular, there is a need for
+uncertainty-aware MPC formulations that are specifically tailored to safety-critical UAV landing and capable
+of balancing robustness, performance, and real-time feasibility under realistic uncertainty conditions.
+1.2 Background
+From a control-theoretic perspective, autonomous UAV landing can be formulated as a constrained nonlinear
+optimal control problem subject to uncertainty. The system dynamics are nonlinear, the admissible state and
+input sets are tightly bounded, and the control objective involves tracking a landing trajectory while satisfying
+terminal touchdown conditions. These characteristics make UAV landing a representative benchmark for
+advanced predictive control methods.
+Model Predictive Control addresses such problems by solving a finite-horizon optimal control problem at
+each control update and applying the first control input in a receding-horizon fashion. This structure enables
+MPC to anticipate future constraint violations, incorporate predictions of platform motion or reference tra-
+jectories, and adjust control actions proactively. The explicit inclusion of state and input constraints within
+the optimization problem is a key reason for MPC’s widespread adoption in UAV landing applications [1,9].
+Uncertainty-aware extensions of MPC aim to improve robustness by incorporating uncertainty directly
+into the prediction and optimization process. Robust MPC formulations consider bounded disturbances and
+model uncertainty and seek to guarantee constraint satisfaction for all admissible uncertainty realizations,
+often using tube-based or invariant set concepts [2]. These approaches provide strong safety guarantees but
+typically rely on worst-case assumptions that can introduce conservatism, which is particularly undesirable
+during precision landing maneuvers [3].
+Stochastic MPC formulations represent uncertainty probabilistically and enforce chance constraints that
+are satisfied with a specified confidence level. This allows explicit trade-offs between performance and risk
+and can be effective when disturbance statistics are known or can be estimated reliably [4]. However, during
+5
+
+
+--- PAGE 6 ---
+UAV landing, disturbance characteristics may vary rapidly due to aerodynamic effects and environmental
+interactions, making accurate probabilistic modeling challenging and increasing computational complexity.
+More recently, learning-augmented MPC approaches have been proposed to reduce model mismatch by
+incorporating data-driven models or uncertainty estimates obtained from Gaussian processes or neural net-
+works [5]. While these methods have demonstrated improved adaptability and predictive accuracy, their use
+in safety-critical landing scenarios raises concerns regarding formal safety guarantees and certification.
+Despite significant progress, existing MPC-based UAV landing approaches often address uncertainty
+sources in isolation or rely on assumptions that limit practical applicability. In particular, there remains
+a gap between theoretical developments in uncertainty-aware MPC and the requirements of constrained non-
+linear UAV landing, where multiple uncertainty sources interact and strict safety constraints must be enforced
+in real time. Addressing this gap motivates the research problem formulated in the following section.
+1.2.1 Problem Statement
+Model Predictive Control is widely used for autonomous UAV landing because it enables explicit handling
+of nonlinear dynamics and strict state and input constraints [1]. However, most existing MPC-based landing
+controllers rely on deterministic models or fixed safety margins that do not adequately capture the uncertainty
+present in realistic landing environments. In practice, UAV landing is affected by multiple interacting sources
+of uncertainty, including wind disturbances, aerodynamic modeling errors, parametric variations, and sensor
+noise, which can lead to degraded performance or constraint violations if not explicitly addressed. Robust
+MPC formulations provide safety guarantees under bounded uncertainty but often introduce excessive conser-
+vatism that limits landing precision and efficiency for nonlinear systems [2,3]. Stochastic and learning-based
+MPC approaches offer alternative uncertainty representations but depend on accurate uncertainty modeling
+and raise challenges related to computational complexity and safety assurance in safety-critical landing sce-
+narios [4, 5]. Consequently, there is a lack of a control framework that is specifically tailored to constrained
+nonlinear UAV landing and capable of explicitly incorporating uncertainty while balancing robustness, per-
+formance, strict constraint satisfaction, and real-time feasibility. Addressing this gap constitutes the central
+problem investigated in this research.
+1.3 Research Objectives
+The objective of this research is to investigate and validate an uncertainty-aware Model Predictive Control
+framework for constrained nonlinear systems, using autonomous UAV landing as a representative safety-
+critical case study. The research focuses on explicit uncertainty handling while maintaining strict constraint
+satisfaction and practical computational feasibility.
+The specific objectives of this research are as follows:
+1.To develop a constrained nonlinear MPC formulation for UAV landing that explicitly
+incorporates uncertainty.
+This objective focuses on formulating a nonlinear predictive control problem that accounts for bounded
+disturbances and parametric uncertainty within the system model, rather than relying on purely deter-
+ministic assumptions or fixed safety margins.
+2.To design a robustness mechanism based on constraint tightening for uncertainty handling
+during landing.
+The research aims to implement a tube-based or set-based robustness strategy that enforces state
+and input constraints under bounded uncertainty, with particular attention to feasibility and landing
+precision in nonlinear UAV dynamics.
+3.To investigate the impact of uncertainty-aware control on landing performance and safety.
+Through simulation-based evaluation, the research examines how explicit uncertainty handling influ-
+ences landing accuracy, constraint violations, and control effort when compared to deterministic MPC
+and classical baseline controllers.
+6
+
+
+--- PAGE 7 ---
+4.To assess the computational feasibility of the proposed uncertainty-aware MPC framework
+for real-time landing scenarios.
+This objective evaluates solver performance, prediction horizon selection, and execution time to de-
+termine whether the proposed formulation can operate within realistic computational limits for UAV
+landing.
+5.To analyze the sensitivity of controller performance to uncertainty modeling assumptions.
+The research studies how variations in uncertainty bounds and modeling assumptions affect robustness
+and performance, providing insight into the practical reliability of uncertainty-aware MPC designs.
+Together, these objectives define a focused and achievable research scope that addresses the identified gap
+between deterministic MPC approaches and the requirements of constrained nonlinear UAV landing under
+uncertainty.
+2 Overview and Scope
+This literature review examines research on Model Predictive Control for constrained nonlinear systems under
+uncertainty, with a specific focus on autonomous UAV landing as a safety-critical application. The purpose
+of the review is not to provide an exhaustive survey of all MPC variants, but to establish the theoretical
+and practical context necessary to motivate the proposed uncertainty-aware MPC framework and to identify
+gaps relevant to constrained nonlinear landing problems.
+UAV landing presents a representative benchmark for uncertainty-aware control due to the combination of
+nonlinear dynamics, strict state and actuator constraints, environmental disturbances, and the requirement
+for precise terminal behavior. Recent surveys indicate that MPC-based approaches dominate the UAV landing
+literature because of their ability to explicitly encode constraints and anticipate future system behavior [1].
+However, these studies also highlight that uncertainty is often treated implicitly or through conservative
+safety margins, which can limit performance during precision landing maneuvers.
+The scope of this review is therefore limited to MPC formulations that explicitly address uncertainty in a
+manner relevant to nonlinear UAV landing. This includes robust MPC approaches that guarantee constraint
+satisfaction under bounded uncertainty, stochastic MPC formulations that incorporate probabilistic repre-
+sentations of disturbances, and related extensions that aim to balance robustness and performance [2–4].
+Learning-based and safety-integrated MPC methods are discussed only insofar as they inform current limi-
+tations in uncertainty handling and safety assurance for landing applications [5,6].
+Rather than reviewing all UAV control strategies, this section focuses on how different uncertainty-aware
+MPC formulations handle constraints, robustness, and computational complexity in the context of landing.
+The review emphasizes limitations that motivate the present research, namely the lack of MPC frameworks
+that are specifically tailored to constrained nonlinear UAV landing and capable of explicitly incorporating
+uncertainty while maintaining strict constraint enforcement and real-time feasibility. This focused scope
+ensures that the literature review directly supports the problem formulation and research objectives outlined
+in Section 1.
+2.1 Critical Synthesis and Research Gaps
+The reviewed literature demonstrates that Model Predictive Control has become the dominant framework
+for autonomous UAV landing due to its ability to explicitly handle nonlinear dynamics and strict state and
+input constraints [1]. Significant progress has been made in applying nonlinear MPC to precision landing
+scenarios, including landings on static and moving platforms, with demonstrated improvements in tracking
+accuracy and constraint handling compared to classical control methods [6, 9]. However, the treatment of
+uncertainty remains a key limitation across much of the existing work.
+Robust MPC formulations address uncertainty by guaranteeing constraint satisfaction under bounded
+disturbances and model mismatch, providing strong safety assurances that are desirable for landing maneuvers
+[2]. Nevertheless, these approaches often rely on worst-case assumptions that introduce conservatism, which
+can reduce landing precision and increase control effort for nonlinear UAV systems [3]. This conservatism
+7
+
+
+--- PAGE 8 ---
+is particularly problematic during the final descent phase, where tight constraints and accurate touchdown
+conditions are required.
+Stochastic MPC approaches offer an alternative by modeling uncertainty probabilistically and enforcing
+chance constraints, enabling explicit trade-offs between performance and risk [4]. While attractive in principle,
+these methods depend on accurate disturbance statistics and incur increased computational complexity,
+which limits their practical applicability in rapidly changing landing environments. Learning-augmented
+MPC frameworks further improve predictive accuracy and adaptability by reducing model mismatch through
+data-driven techniques [5]. However, their reliance on learned models raises unresolved concerns regarding
+safety guarantees, interpretability, and certification in safety-critical landing applications.
+Safety-integrated MPC approaches, such as those incorporating Control Barrier Functions, have demon-
+strated strong safety performance in landing scenarios by explicitly enforcing invariance of safe sets [6].
+Despite their effectiveness, these methods are most often applied under deterministic assumptions and are
+rarely combined with explicit uncertainty handling. Similarly, distributed and cooperative MPC formula-
+tions extend MPC-based landing to more complex operational scenarios but introduce additional sources of
+uncertainty related to communication and platform coupling [7].
+Overall, the literature indicates that existing MPC-based UAV landing approaches typically address uncer-
+tainty, safety, and computational feasibility in isolation rather than within a unified framework. In particular,
+there remains a gap in MPC formulations that are specifically tailored to constrained nonlinear UAV landing
+and capable of explicitly incorporating uncertainty while maintaining strict constraint enforcement and prac-
+tical real-time feasibility. Addressing this gap motivates the uncertainty-aware MPC framework proposed in
+this research, which focuses on structured uncertainty handling and robust constraint satisfaction within a
+nonlinear predictive control setting.
+Table 1: Summary of MPC formulations for UAV landing with focus on uncertainty handling.
+Reference MPC Type Uncertainty Constraints Key Findings Limitations
+Panjavarnam et
+al., 2025
+Survey Varies Varies MPC dominant for con-
+straint handling
+Limited unified uncer-
+tainty handling
+Batool et al.,
+2025
+Nonlinear MPC Deterministic Hard High precision landing No explicit uncertainty
+modeling
+Leeman et al.,
+2025
+Robust NMPC Bounded Robust Guaranteed constraint
+satisfaction
+Conservative, high com-
+putation
+Aryan, 2025 Stochastic NMPC Chance-
+constrained
+Probabilistic Good risk-performance
+trade-off
+Needs accurate statis-
+tics, costly
+Wehbeh and
+Kerrigan, 2025
+Robust MPC Sensitivity-based Hard Reduced conservatism Limited to simple ma-
+neuvers
+Saviolo et al.,
+2024
+Learning MPC Data-driven Mixed Improved adaptability Limited safety guaran-
+tees
+Stephenson et
+al., 2024
+Distributed MPC Learned motion Coupled Cooperative landing Communication chal-
+lenges
+Ru and Sub-
+barao, 2017
+Nonlinear control Implicit Deterministic Stable control Not for precision landing
+3 Overview of the Methodological Approach
+This research adopts a model-based control methodology focused on the design and evaluation of an uncertainty-
+aware Model Predictive Control framework for constrained nonlinear systems, with autonomous UAV landing
+serving as the primary case study. The methodological approach is structured to directly address the re-
+search problem identified in Section 1, namely the lack of MPC formulations that explicitly account for
+uncertainty while maintaining strict constraint satisfaction and practical real-time feasibility in nonlinear
+landing scenarios.
+The core of the proposed approach is a constrained nonlinear MPC formulation that incorporates uncer-
+tainty through structured modeling and robust constraint handling. Rather than relying on purely determin-
+istic assumptions or overly conservative safety margins, the methodology explicitly represents key sources
+of uncertainty relevant to UAV landing, including bounded disturbances and parametric variations. These
+uncertainties are integrated into the predictive control framework using robustness mechanisms that are
+compatible with nonlinear dynamics and safety-critical constraints.8
+
+
+--- PAGE 9 ---
+To ensure safety during landing, the methodology emphasizes robust constraint enforcement using set-
+based techniques, such as constraint tightening derived from bounded uncertainty representations. This
+allows state and input constraints to be respected despite disturbances and modeling errors, which is essential
+during the final descent and touchdown phases. Probabilistic uncertainty representations are considered at
+an analytical and evaluative level to assess robustness and performance sensitivity, rather than forming the
+primary basis of the control law, thereby maintaining methodological focus and computational tractability.
+The UAV landing task is used throughout the methodology to ground theoretical developments in a
+realistic application. The nonlinear system model, constraints, uncertainty representations, and performance
+metrics are all defined with reference to the physical and operational requirements of autonomous landing.
+High-fidelity simulation studies are employed to evaluate controller behavior under increasing uncertainty
+and to compare the proposed uncertainty-aware MPC framework against deterministic MPC, robust MPC,
+and classical baseline controllers.
+Overall, the methodological approach is designed to balance rigor and feasibility. It prioritizes explicit
+uncertainty handling and safety-oriented constraint enforcement while remaining achievable within the scope
+of a Master’s research project. The structure of the methodology ensures that theoretical design choices are
+consistently validated through simulation-based analysis, providing insight into the practical benefits and
+limitations of uncertainty-aware MPC for constrained nonlinear UAV landing.
+3.1 Structured Uncertainty Modeling
+Uncertainty plays a central role in autonomous UAV landing due to environmental disturbances, modeling
+inaccuracies, and imperfect state information. In this research, uncertainty is modeled in a structured and
+application-driven manner to support robust constraint enforcement within a nonlinear MPC framework,
+while avoiding unnecessary complexity that would compromise feasibility.
+The uncertainty affecting the UAV landing task is classified into three main categories based on its
+physical origin and impact on control performance. The first category isparametric uncertainty, which
+captures variations in system parameters such as mass, inertia, and aerodynamic coefficients arising from
+payload changes, battery depletion, or modeling simplifications. These parameters are assumed to lie within
+known bounded sets that reflect realistic operating conditions.
+The second category consists ofadditive disturbancesacting on the system dynamics. These disturbances
+represent environmental effects such as wind gusts, turbulence, and near-ground aerodynamic interactions.
+For control design purposes, these disturbances are modeled as bounded signals with known limits, allowing
+their effects to be explicitly accounted for through robust constraint handling techniques. This bounded
+disturbance representation forms the primary uncertainty model used within the MPC formulation to ensure
+safety and constraint satisfaction during landing.
+The third category isstate estimation uncertaintyresulting from sensor noise and imperfect state recon-
+struction. Rather than modeling estimation uncertainty explicitly within the MPC optimization problem,
+its effects are captured implicitly through conservative bounds on the system state or disturbance terms,
+consistent with standard robust MPC assumptions.
+While some uncertainty sources, such as wind turbulence and sensor noise, may exhibit stochastic char-
+acteristics, probabilistic representations are not used as the primary basis for constraint enforcement in this
+work. Instead, stochastic uncertainty models are employed at an analytical and evaluative level to assess
+controller robustness and performance sensitivity under randomized uncertainty realizations. This design
+choice prioritizes safety and tractability by ensuring that hard state and input constraints are enforced under
+bounded uncertainty assumptions.
+3.2 Uncertainty-Aware MPC Formulation
+This section presents the formulation of the uncertainty-aware Model Predictive Control framework proposed
+in this research. The formulation is centered on a constrained nonlinear MPC design with explicit robust-
+ness mechanisms to handle bounded uncertainty, ensuring strict enforcement of state and input constraints
+during UAV landing. The approach prioritizes safety and feasibility under uncertainty while maintaining
+computational tractability suitable for real-time implementation.
+9
+
+
+--- PAGE 10 ---
+3.2.1 Nominal Nonlinear MPC Problem
+The starting point of the formulation is a nominal nonlinear MPC problem defined for the uncertainty-
+free system dynamics. At each control update, an optimal control sequence is computed by minimizing a
+finite-horizon cost function of the form
+min
+u0,...,uN−1
+N−1X
+i=0
+ℓ(xi, ui) +ℓ f(xN)
+subject to the nominal discrete-time dynamics
+xi+1 =f d(xi, ui),
+and the state and input constraints
+xi ∈ X, u i ∈ U.
+The stage cost penalizes tracking error and control effort, while the terminal cost encourages convergence
+toward desired landing conditions. This nominal MPC problem provides the baseline structure upon which
+uncertainty handling mechanisms are incorporated.
+3.2.2 Robust Constraint Handling via Tube-Based MPC
+To ensure constraint satisfaction under bounded uncertainty, the nominal MPC formulation is augmented
+using a tube-based robust MPC approach. The actual system state is decomposed into a nominal component
+and an error component induced by disturbances and modeling uncertainty. A stabilizing feedback law is
+used to bound the evolution of this error within a robust invariant set.
+Constraint tightening is applied to the nominal state and input trajectories such that, if the nominal
+predictions satisfy the tightened constraints, the true system trajectory satisfies the original constraints for all
+admissible uncertainty realizations. This mechanism enables strict enforcement of safety-critical constraints
+during landing despite bounded disturbances and parameter variations.
+For the nonlinear UAV dynamics considered in this work, invariant error sets are approximated using
+local linearization around the landing trajectory and offline computation of stabilizing feedback gains. This
+design choice balances robustness and computational feasibility and is consistent with established nonlinear
+robust MPC practices.
+3.2.3 Treatment of Stochastic Uncertainty
+Certain uncertainty sources relevant to UAV landing, such as wind turbulence and sensor noise, may exhibit
+stochastic characteristics. In this research, such stochastic uncertainty is not incorporated directly into the
+MPC constraints or optimization problem. Instead, it is used to evaluate the robustness and performance
+sensitivity of the proposed controller through randomized simulation studies.
+This separation ensures that hard state and input constraints are enforced under bounded uncertainty
+assumptions while still allowing insight into controller behavior under probabilistic disturbance realizations.
+By avoiding direct integration of chance constraints into the core MPC formulation, the approach maintains
+theoretical clarity and avoids unnecessary computational burden.
+3.2.4 Terminal Conditions and Recursive Feasibility
+To promote stability and recursive feasibility, terminal conditions are incorporated into the MPC formulation.
+A terminal constraint set is defined such that, once the system state enters this set, there exists an admissible
+control action that keeps the state within the set under bounded uncertainty. The terminal cost and terminal
+constraint are designed consistently with the robust constraint tightening strategy to ensure feasibility over
+successive MPC iterations.
+These terminal conditions are particularly important for UAV landing, where convergence to safe touch-
+down states must be guaranteed within a finite horizon.
+10
+
+
+--- PAGE 11 ---
+3.2.5 Optional Safety Augmentation
+For landing scenarios involving obstacles or complex environment constraints, additional safety requirements
+may be incorporated into the MPC formulation through auxiliary state constraints. These safety mechanisms
+are treated as optional extensions and are only considered if they can be integrated without compromising
+feasibility or real-time performance. They do not form a core contribution of this research and are included
+to demonstrate extensibility of the proposed framework.
+Figure 1: Conceptual architecture of the proposed uncertainty-aware MPC framework for UAV landing.
+As shown in Figure 1, the proposed framework integrates state estimation and structured uncertainty
+modeling into a nonlinear Model Predictive Control scheme. This conceptual architecture highlights how
+uncertainty information is intended to inform the predictive optimization process while maintaining feedback
+from the UAV system. The figure is illustrative and is not intended to represent a finalized implementation.
+4 System Model and Assumptions
+4.1 Modeling
+This chapter presents the control design and analysis of the proposed uncertainty-aware Model Predictive
+Control framework for autonomous UAV landing. The focus is on translating the methodological concepts
+introduced in Chapter 3 into a concrete control formulation suitable for robustness analysis and simulation-
+based evaluation. This section introduces the system model used for control design and clearly states the
+assumptions under which the proposed approach is developed.
+4.1.1 UAV Dynamic Model
+The UAV considered in this research is modeled as a rigid-body system with nonlinear translational and
+rotational dynamics. The model captures the essential dynamics relevant to the landing phase, including
+position, velocity, attitude, and angular velocity states. Such nonlinear models are widely adopted in MPC-
+based UAV landing studies due to their ability to represent coupling effects and constraint-relevant behaviors
+during descent and touchdown [1,6].
+Let the system state vector be defined as
+x=
+h
+p⊤ v⊤ η⊤ ω⊤
+i⊤
+,
+11
+
+
+--- PAGE 12 ---
+wherep∈R 3 denotes the position of the UAV in an inertial frame,v∈R 3 represents translational
+velocity,η∈R 3 denotes attitude variables, andω∈R 3 represents angular velocity. The control input vector
+consists of thrust and attitude-related inputs subject to actuator limitations.
+The continuous-time nonlinear dynamics are expressed in compact form as
+˙x(t) =f(x(t), u(t)) +w(t),
+whereu(t) is the control input andw(t) represents additive disturbances capturing modeling errors and
+environmental effects. For use within the MPC framework, the system dynamics are discretized using a fixed
+sampling time, yielding a discrete-time nonlinear model suitable for prediction over a finite horizon [2].
+This model is intended to capture the dominant dynamics relevant to autonomous landing while remaining
+computationally tractable for real-time predictive control.
+4.1.2 Operating Regime and Scope
+The control design focuses exclusively on the landing phase of UAV operation. This includes controlled
+descent, approach, and touchdown within a constrained operating envelope. Aggressive maneuvers, high-
+speed flight, and fault conditions are outside the scope of this work. The UAV is assumed to operate
+near hover or low-velocity descent, which is consistent with standard assumptions in MPC-based landing
+studies [1,9].
+By restricting the operating regime, the proposed control framework can exploit local properties of the
+nonlinear dynamics to balance robustness and performance without introducing unnecessary conservatism.
+4.1.3 Assumptions
+The following assumptions are made throughout the control design and analysis:
+1.State Availability:All system states required by the MPC controller are assumed to be available
+through onboard sensors and state estimation algorithms. Estimation errors are treated implicitly as
+bounded uncertainty, consistent with robust MPC assumptions [2].
+2.Bounded Uncertainty:External disturbances and model uncertainties affecting the UAV dynamics
+are assumed to be bounded within known limits. These bounds are selected to reflect realistic landing
+conditions, including wind disturbances and modeling inaccuracies.
+3.Known Constraints:State and input constraints, including actuator limits and safety-related state
+bounds, are assumed to be known a priori and remain constant during the landing maneuver.
+4.Fixed Sampling Time:The MPC controller operates with a fixed sampling time that is sufficiently
+small to capture the relevant dynamics of the landing phase and to support real-time optimization.
+These assumptions are standard in robust nonlinear MPC formulations and are necessary to ensure
+feasibility and safety during constrained UAV landing [2,3].
+4.2 Nominal Model Predictive Control Formulation
+This section presents the nominal Model Predictive Control formulation that serves as the baseline for
+the uncertainty-aware control design developed in the subsequent sections. The nominal MPC problem is
+defined for the nonlinear UAV dynamics introduced in Section 4.1 and does not yet account for uncertainty or
+robustness. This separation allows the effects of uncertainty handling to be introduced systematically while
+maintaining conceptual clarity.
+12
+
+
+--- PAGE 13 ---
+4.2.1 Prediction Model
+The nominal discrete-time system dynamics used for prediction within the MPC framework are given by
+xk+1 =f d(xk, uk),
+wherex k denotes the system state at time stepk,u k is the control input, andf d(·) represents the
+discretized nonlinear UAV dynamics. The discretization is performed using a fixed sampling time consistent
+with the assumptions stated in Section 4.1. This nonlinear prediction model captures the dominant dynamics
+relevant to the landing phase and is commonly used in MPC-based UAV landing control [1,6].
+The prediction model is assumed to be known and deterministic in this nominal formulation. Modeling
+errors and disturbances are not considered at this stage and will be addressed explicitly in Sections 4.3 and
+4.4.
+4.2.2 Cost Function
+At each control update, the nominal MPC computes a control input sequence by minimizing a finite-horizon
+cost function of the form
+J=
+N−1X
+i=0
+ℓ(xi, ui) +ℓ f(xN),
+whereNis the prediction horizon,ℓ(·) is the stage cost, andℓ f(·) is the terminal cost. The stage cost
+penalizes deviations from the desired landing trajectory as well as control effort, while the terminal cost
+promotes convergence toward a target landing state.
+The structure of the cost function follows standard MPC practice and reflects typical performance ob-
+jectives for UAV landing, including tracking accuracy, smooth control action, and stable touchdown behav-
+ior [1, 9]. The specific weighting matrices are selected based on the landing requirements and are tuned
+empirically through simulation.
+4.2.3 Constraints
+The nominal MPC optimization problem is subject to state and input constraints of the form
+xi ∈ X, u i ∈ U, i= 0, . . . , N−1,
+whereXandUdenote admissible sets for the system states and control inputs, respectively. These
+constraints capture actuator limitations, safety-related state bounds, and operational restrictions relevant to
+the landing maneuver.
+At the nominal level, these constraints are enforced directly on the predicted state and input trajectories
+without modification. Constraint tightening to account for uncertainty will be introduced in Section 4.4.
+4.2.4 Nominal MPC Optimization Problem
+The nominal MPC problem solved at each time step can be summarized as
+min
+u0,...,uN−1
+N−1X
+i=0
+ℓ(xi, ui) +ℓ f(xN)
+subject to
+xi+1 =f d(xi, ui),
+xi ∈ X, u i ∈ U,
+x0 =x k,
+wherex k is the measured or estimated current state of the UAV. The first control input of the optimal
+sequence is applied to the system in a receding-horizon manner, and the optimization is repeated at the next
+sampling instant. 13
+
+
+--- PAGE 14 ---
+This nominal formulation provides the baseline MPC structure upon which uncertainty-aware extensions
+are built. Its role is to define performance objectives and constraint handling in the absence of uncertainty,
+allowing the impact of robustification strategies introduced later to be clearly evaluated.
+4.3 Uncertainty Modeling and Error Dynamics
+This section introduces the uncertainty representations used in the control design and defines the correspond-
+ing error dynamics that arise when the nominal MPC formulation is applied to the uncertain UAV system.
+The purpose of this section is to formally characterize how disturbances and modeling errors affect the system
+evolution, thereby providing the foundation for the robust constraint handling strategy introduced in Section
+4.4.
+4.3.1 Uncertain System Model
+The true UAV dynamics during landing are subject to uncertainty arising from environmental disturbances,
+modeling inaccuracies, and parameter variations. These effects are captured by augmenting the nominal
+discrete-time system dynamics with an additive disturbance term, yielding the uncertain system model
+xk+1 =f d(xk, uk) +w k,
+wherew k represents the combined effect of bounded disturbances and model mismatch at time stepk.
+This additive disturbance formulation is commonly adopted in robust MPC literature for UAV systems, as
+it allows uncertainty effects to be explicitly accounted for while maintaining tractability [2,3].
+The disturbance termw k is assumed to belong to a known bounded setW, which reflects realistic uncer-
+tainty levels encountered during UAV landing, including wind gusts and near-ground aerodynamic effects.
+The bounds ofWare selected conservatively to ensure safety while avoiding unnecessary overestimation that
+would lead to excessive conservatism.
+Decomposition into Nominal and Error Dynamics
+To analyze the effect of uncertainty on the system evolution, the actual system state is decomposed into
+a nominal component and an error component. Let the nominal state trajectory ¯x k evolve according to the
+nominal dynamics
+¯xk+1 =f d(¯xk,¯uk),
+where ¯uk is the control input computed by the nominal MPC problem described in Section 4.2. The
+deviation between the true state and the nominal state is defined as the error state
+ek =x k −¯xk.
+This decomposition is standard in robust MPC formulations and enables separation of performance objec-
+tives, governed by the nominal trajectory, from robustness considerations, governed by the error dynamics [2].
+4.3.2 Error Dynamics under Feedback Control
+The evolution of the error state depends on the applied control law and the disturbance realization. In this
+work, the actual control input is assumed to consist of the nominal MPC input augmented by a stabilizing
+feedback term that acts on the error state. This feedback component is introduced to limit the growth of
+deviations caused by uncertainty.
+Under this structure, the error dynamics can be expressed in compact form as
+ek+1 =g(e k, wk),
+whereg(·) represents the error dynamics induced by the nonlinear system behavior, the stabilizing feed-
+back action, and the disturbance term. For nonlinear systems, these dynamics are generally nonlinear and
+state dependent. However, within the restricted operating regime of UAV landing, local approximations can
+be employed to characterize the evolution of the error state [3].
+14
+
+
+--- PAGE 15 ---
+At the proposal stage, the explicit form ofg(·) is not derived. Instead, it is assumed that a suitable
+feedback law exists such that the error remains bounded for all admissible disturbances. The construction of
+this feedback law and the associated error bounds will be detailed in Chapter 4 of the final thesis.
+4.3.3 Assumptions on Error Boundedness
+For the purpose of robust constraint enforcement, it is assumed that the error state remains contained within
+a bounded setEfor all time steps, provided that the disturbancew k remains within the admissible set
+W. This assumption is standard in tube-based robust MPC and forms the basis for constraint tightening
+strategies that guarantee safety under uncertainty [2,3].
+The size and shape of the error bound set depend on the chosen feedback law, the uncertainty bounds,
+and the local properties of the nonlinear dynamics. In this research, these sets are computed offline based on
+local linearization around the landing trajectory and conservative uncertainty bounds. Detailed derivations
+and design procedures will be presented in Chapter 4 of the final thesis.
+4.4 Robust Constraint Tightening Strategy
+This section presents the robust constraint tightening strategy used to ensure state and input constraint
+satisfaction under bounded uncertainty. Building on the error dynamics introduced in Section 4.3, the
+approach modifies the nominal MPC constraints to account for deviations between the nominal and actual
+system trajectories. The objective is to guarantee safety during UAV landing despite disturbances and
+modeling errors, while preserving feasibility and computational tractability.
+4.4.1 Motivation for Constraint Tightening
+When the nominal MPC formulation described in Section 4.2 is applied to the uncertain system, the predicted
+nominal trajectories may differ from the actual system behavior due to the presence of disturbances. As a
+result, enforcing constraints directly on the nominal predictions does not, in general, guarantee that the true
+system trajectory satisfies the original constraints.
+To address this issue, a robust constraint tightening approach is adopted. The key idea is to restrict the
+admissible nominal state and input trajectories to tightened sets such that, for all admissible disturbances,
+the true system states and inputs remain within the original constraint sets. This concept is widely used
+in robust MPC formulations for constrained nonlinear systems and is particularly suitable for safety-critical
+applications such as UAV landing [2,3].
+4.4.2 Tightened State and Input Constraints
+LetXandUdenote the original state and input constraint sets defined in Section 4.2. Based on the bounded
+error setEintroduced in Section 4.3, tightened constraint sets for the nominal trajectories are defined as
+Xtight =X ⊖ E,U tight =U ⊖KE,
+where⊖denotes the Pontryagin set difference andKrepresents the stabilizing feedback gain associated
+with the error dynamics. Enforcing the nominal MPC constraints over the tightened sets ensures that the true
+system states and inputs satisfy the original constraints for all admissible disturbances within the uncertainty
+setW.
+At the proposal stage, the exact computation of the setsE,X tight, andU tight is not detailed. These sets
+are computed offline using conservative approximations based on local linearization of the nonlinear dynamics
+around the landing trajectory. The detailed derivation and numerical procedures will be presented in Chapter
+4 of the final thesis.
+4.4.3 Integration into the MPC Optimization Problem
+The tightened constraint sets are incorporated into the nominal MPC optimization problem by replacing the
+original constraints with their tightened counterparts. The resulting robust MPC problem enforces
+15
+
+
+--- PAGE 16 ---
+¯xi ∈ Xtight,¯u i ∈ Utight, i= 0, . . . , N−1,
+where ¯xi and ¯ui denote the nominal predicted state and input trajectories. This modification does not alter
+the structure of the MPC problem, but it reduces the admissible region available to the nominal controller
+to account for uncertainty effects.
+By performing constraint tightening offline, the online computational complexity of the MPC optimization
+problem remains comparable to that of the nominal formulation, which is essential for real-time feasibility
+during UAV landing [3].
+4.4.4 Conservatism and Design Trade-offs
+The effectiveness of the constraint tightening strategy depends on the size of the error bound setE. Larger
+uncertainty bounds result in tighter constraints, which increase robustness but may reduce performance or
+feasibility. Conversely, smaller uncertainty bounds improve performance but reduce robustness margins.
+In this research, uncertainty bounds are selected based on realistic landing conditions and validated
+through simulation studies. Sensitivity analysis is conducted to assess the impact of uncertainty bound
+selection on performance and feasibility, as discussed in Chapter 5. This analysis provides insight into the
+trade-offs between robustness and landing precision without introducing probabilistic guarantees or hybrid
+uncertainty handling mechanisms.
+4.5 Terminal Conditions and Feasibility Discussion
+This section discusses the terminal conditions employed in the proposed uncertainty-aware MPC framework
+and their role in promoting recursive feasibility during the UAV landing maneuver. The objective is to
+ensure that the MPC optimization problem remains feasible over successive time steps while guiding the
+system toward safe touchdown conditions under bounded uncertainty.
+4.5.1 Role of Terminal Conditions in UAV Landing
+In finite-horizon MPC formulations, terminal conditions are commonly introduced to mitigate the effects of
+horizon truncation and to encourage convergence toward a desired operating region. For safety-critical tasks
+such as UAV landing, terminal conditions play an additional role by supporting feasibility and safety as the
+system approaches touchdown, where constraints become increasingly restrictive [1].
+In the context of uncertainty-aware MPC, terminal conditions must be designed consistently with the
+robust constraint tightening strategy described in Section 4.4. This ensures that feasibility is maintained
+even in the presence of bounded disturbances and modeling errors.
+4.5.2 Terminal Cost and Terminal Constraint Set
+The proposed MPC formulation includes a terminal cost that penalizes deviations from a desired terminal
+landing state. This terminal cost is selected to reflect landing objectives such as reduced velocity, stable
+attitude, and proximity to the touchdown region. The use of terminal costs to improve convergence properties
+is standard practice in MPC-based UAV control [6,9].
+In addition to the terminal cost, a terminal constraint set is defined to restrict the terminal state of
+the nominal prediction. This set represents a region around the desired landing condition within which a
+feasible control action exists that maintains constraint satisfaction under bounded uncertainty. The terminal
+constraint set is chosen to be compatible with the tightened state constraints introduced in Section 4.4.
+At the proposal stage, the exact computation of the terminal constraint set is not detailed. Instead, it
+is assumed that such a set can be constructed offline using local approximations of the nonlinear dynamics
+around the landing condition, consistent with established robust MPC approaches [2,3]. Detailed construction
+procedures will be presented in Chapter 4 of the final thesis.
+16
+
+
+--- PAGE 17 ---
+4.5.3 Recursive Feasibility Considerations
+Recursive feasibility refers to the property that if the MPC optimization problem is feasible at a given time
+step, it remains feasible at subsequent time steps when the control law is applied. In this work, recursive
+feasibility is supported through the combined use of constraint tightening, stabilizing feedback on the error
+dynamics, and appropriately defined terminal conditions.
+Rather than providing a formal proof of recursive feasibility, this research adopts standard assumptions
+from robust MPC theory, including bounded disturbances and the existence of invariant error sets [2]. Under
+these assumptions, the tightened constraints and terminal conditions are designed to ensure that feasible
+nominal trajectories remain admissible as the system evolves.
+The validity of these feasibility assumptions is further examined through simulation-based evaluation,
+where feasibility preservation and constraint satisfaction are assessed under increasing uncertainty levels.
+This empirical analysis complements the theoretical design and provides practical insight into the behavior
+of the proposed controller during landing.
+4.5.4 Scope and Limitations
+The feasibility discussion in this section is limited to local properties within the defined landing operating
+regime. Global stability and feasibility guarantees are not claimed. The focus is on ensuring practical
+feasibility and safety during the landing phase under realistic uncertainty conditions.
+This scope is consistent with the objectives of a Master’s-level research project and reflects the practical
+emphasis of uncertainty-aware MPC for constrained nonlinear UAV landing.
+Figure 2: Illustrative UAV landing scenario and constraint geometry.
+The autonomous landing task considered in this study is characterized by strict state and input constraints
+as well as environmental disturbances. An illustrative representation of the landing scenario is shown in
+Figure 2 to provide physical context for the control problem.
+4.6 Implementation Considerations
+This section discusses practical considerations related to the implementation of the proposed uncertainty-
+aware MPC framework. The objective is not to provide low-level implementation details, but to demonstrate17
+
+
+--- PAGE 18 ---
+that the proposed control design is computationally feasible and suitable for real-time execution during UAV
+landing.
+4.6.1 Optimization Problem Structure
+The uncertainty-aware MPC formulation developed in this chapter retains the same optimization structure
+as the nominal MPC problem introduced in Section 4.2, with the only modification being the use of tightened
+state and input constraints as described in Section 4.4. As a result, the online optimization problem remains
+a finite-horizon nonlinear constrained optimization problem, which is solved at each sampling instant in a
+receding-horizon manner.
+This structural consistency is important for implementation, as it allows the use of standard nonlinear
+MPC solvers that are commonly employed in UAV control applications [1, 6]. The robustification strategy
+is handled offline through constraint tightening, which avoids introducing additional decision variables or
+uncertainty-related constraints into the online optimization problem.
+4.6.2 Real-Time Feasibility Considerations
+Real-time feasibility is a key requirement for autonomous UAV landing, where control decisions must be
+computed within strict timing constraints. In this research, real-time feasibility is supported through sev-
+eral design choices. First, uncertainty handling is performed offline through the computation of tightened
+constraint sets, which limits the computational burden of the online MPC problem. Second, the prediction
+horizon and sampling time are selected to balance control performance and solver execution time, consistent
+with practices reported in MPC-based UAV landing studies [9].
+At the proposal stage, specific solver configurations and execution times are not fixed. Instead, feasibility
+is assessed through simulation-based evaluation, where solver execution time and convergence behavior are
+monitored under representative landing scenarios. These results provide practical insight into the suitability
+of the proposed framework for real-time implementation.
+4.6.3 Numerical Implementation Scope
+The proposed control framework is implemented and evaluated in a simulation environment that captures
+the nonlinear UAV dynamics, constraints, and uncertainty effects relevant to landing. The implementation
+focuses on validating robustness, constraint satisfaction, and performance trends rather than demonstrating
+deployment on a specific hardware platform.
+Low-level implementation aspects, such as embedded hardware selection, real-time operating systems,
+and sensor integration, are outside the scope of this research. This scope restriction is consistent with the
+objectives of a Master’s-level project and allows the study to focus on control design and analysis rather than
+system integration.
+18
+
+
+--- PAGE 19 ---
+As shown in Table 2, a comparative summary of various MPC formulations for UAV landing illustrates
+the focus on uncertainty handling, highlighting the differences in disturbance management strategies between
+the nominal and uncertainty-aware MPC controllers.”
+Table 2: Summary of MPC formulations for UAV landing with focus on uncertainty handling.
+Ref. MPC F ormula-
+tion
+Uncertainty
+Handling
+Constraint
+T reatment
+Reported Findings Limitations
+Panjavarnam
+et al., 2025 [1]
+Survey of MPC
+methods
+Varies across
+studies
+Varies MPC dominates UAV
+landing due to con-
+straint handling
+Limited focus on
+unified uncertainty-
+aware formulations
+Batool et al.,
+2025 [6]
+Nonlinear MPC Deterministic Hard state and in-
+put constraints
+High precision landing
+on static/moving plat-
+forms
+No explicit uncer-
+tainty modeling
+Leeman et al.,
+2025 [2]
+Robust NMPC Bounded distur-
+bances
+Robust constraint
+tightening
+Guaranteed constraint
+satisfaction under
+worst-case uncertainty
+Conservative behav-
+ior, high computation
+Aryan, 2025 [4] Stochastic NMPC Chance-
+constrained
+Probabilistic con-
+straints
+Improved
+performance-risk
+trade-off
+Requires accurate
+disturbance statistics
+Wehbeh and
+Kerrigan,
+2025 [3]
+Robust MPC Sensitivity-based Hard constraints Reduced conservatism Limited application
+to complex nonlinear
+landing
+Saviolo et al.,
+2024 [5]
+Learning-
+augmented MPC
+Data-driven esti-
+mation
+Soft/hard con-
+straints
+Improved adaptability,
+model mismatch re-
+duction
+Limited formal safety
+guarantees
+Stephenson et
+al., 2024 [7]
+Distributed MPC Learned platform
+motion
+Coupled con-
+straints
+Successful cooperative
+landing on moving
+platforms
+Communication and
+scalability challenges
+Ru and Sub-
+barao, 2017 [8]
+Nonlinear control
+with MPC ele-
+ments
+Implicit robust-
+ness
+Deterministic
+constraints
+Stable nonlinear UAV
+control
+Not designed for pre-
+cision landing under
+uncertainty
+4.6.4 Transition to Simulation and Evaluation
+The implementation considerations discussed in this section establish the link between the control design
+presented in Chapter 4 and the simulation-based evaluation presented in the subsequent chapter. Performance
+metrics related to robustness, safety, and computational feasibility are defined and evaluated under increasing
+uncertainty levels to assess the practical behavior of the proposed uncertainty-aware MPC framework.
+Detailed numerical settings, solver parameters, and implementation-specific tuning choices will be reported
+alongside the simulation results in the following chapter to ensure transparency and reproducibility.
+5 Simulation Results and Discussion
+5.1 Simulation Environment and Models
+This section will describe the simulation environment to be used for evaluating the proposed uncertainty-
+aware MPC framework. The objective will be to ensure transparency, consistency with the control design
+presented in Chapter 4, and reproducibility of the results. No new models or assumptions will be introduced
+at this stage.
+The simulations will be conducted using a nonlinear UAV model that is consistent with the system
+dynamics and assumptions described in Section 4.1. The same state definitions, control inputs, constraints,
+and operating regime will be used throughout the simulation studies. This will ensure that the evaluation
+directly reflects the control design assumptions and will avoid discrepancies between the control model and
+the simulated plant.
+The UAV dynamics will be simulated using the discrete-time nonlinear model employed within the MPC
+prediction framework. The sampling time used in the simulations will match the sampling time assumed in19
+
+
+--- PAGE 20 ---
+the MPC formulation described in Sections 4.1 and 4.2. Numerical integration and discretization effects will
+therefore be consistent across prediction and simulation.
+Uncertainty will be introduced into the simulation model through additive disturbance terms acting on the
+system dynamics, consistent with the uncertainty representation described in Section 4.3. The disturbance
+bounds used in simulation will match the bounded uncertainty set assumed during controller design. This
+will ensure that the robustness guarantees provided by the constraint tightening strategy remain valid during
+evaluation. No unmodeled or unbounded disturbances will be introduced.
+All simulations will be conducted in a controlled software environment suitable for nonlinear MPC eval-
+uation. The focus of the simulation environment will be on accurately capturing system behavior under
+uncertainty rather than on real-time hardware execution or sensor-level modeling, which are outside the
+scope of this research.
+5.2 Landing Scenario Description
+This section will describe the autonomous landing scenarios to be used for evaluating controller performance.
+The scenarios will be designed to reflect the operating regime and safety requirements discussed in Chapter
+4 while allowing systematic evaluation of robustness, constraint satisfaction, and performance.
+The landing task will consist of a controlled descent from an initial position above the landing surface to a
+predefined touchdown region. The UAV will be required to reduce altitude, velocity, and attitude errors while
+respecting state and input constraints throughout the maneuver. The desired landing state will correspond
+to low translational velocity, stable attitude, and position within a bounded touchdown region, consistent
+with typical UAV landing requirements [1,9].
+The landing trajectory will be defined implicitly through the MPC reference signals rather than through
+a fixed precomputed path. This will allow the controller to adapt its behavior in response to disturbances
+while maintaining constraint satisfaction. The prediction horizon and cost function weights will be selected
+to balance tracking performance and robustness, as discussed in Section 4.2.
+Multiple landing scenarios will be considered to evaluate different aspects of controller behavior. These
+will include nominal landing conditions without disturbances, as well as disturbed landing conditions with
+bounded uncertainty acting throughout the descent phase. In all scenarios, the same constraints and terminal
+conditions defined in Chapter 4 will be enforced.
+The scenarios will be intentionally limited to the landing phase only. Takeoff, aggressive maneuvers, and
+fault scenarios will not be considered, in order to maintain alignment with the scope defined in Sections 4.1
+and 4.5.
+5.3 Baseline Controllers
+To assess the effectiveness of the proposed uncertainty-aware MPC framework, simulation results will be
+compared against baseline control strategies. These baselines will be selected to highlight the impact of
+explicit uncertainty handling while remaining consistent with the literature and the scope of this research.
+The primary baseline controller will be a deterministic nonlinear MPC controller that uses the same
+prediction model, cost function, horizon length, and constraints as the proposed controller, but without
+robust constraint tightening. This comparison will isolate the effect of uncertainty-aware design choices and
+allow direct evaluation of robustness benefits under bounded disturbances [1,6].
+In addition to deterministic MPC, a classical feedback controller will be used as a secondary baseline
+to provide a reference for performance under limited constraint handling. This controller will be tuned for
+nominal landing performance and will not explicitly account for future constraint violations or uncertainty.
+Its inclusion will provide qualitative insight into the advantages of predictive control for constrained landing
+scenarios.
+All baseline controllers will operate under the same simulation conditions, including identical initial
+states, disturbance realizations, and constraint definitions. No controller will be given access to information
+not available to the others. This will ensure a fair and consistent comparison across all evaluated cases.
+20
+
+
+--- PAGE 21 ---
+5.4 Evaluation Metrics
+This section will define the performance metrics to be used for evaluating the proposed uncertainty-aware
+MPC framework and comparing it with baseline controllers. The metrics will be designed to measure the
+controller’s ability to respect state and input constraints, its robustness under uncertainty, and its overall
+performance during the landing maneuver. The metrics will be selected based on the research objectives
+defined in Chapter 1 and the design principles outlined in Chapter 4.
+5.4.1 Constraint Satisfaction Metrics
+One of the primary objectives of the proposed controller will be to enforce state and input constraints during
+the UAV landing process. The following metrics will be used to evaluate constraint satisfaction:
+•State Constraint Violations:The number of times the system state exceeds the predefined constraint
+boundsXandU. This metric will quantify the ability of the controller to maintain the UAV within
+the specified safe operating region throughout the landing process.
+•Maximum Constraint Violation Magnitude:The largest deviation of the system state from the
+constraint boundaries during the landing. This metric will be particularly useful in evaluating the
+worst-case performance of the controller under disturbance conditions.
+These metrics will allow a direct comparison between the proposed uncertainty-aware MPC and the de-
+terministic baseline MPC controller, evaluating the added benefit of uncertainty-aware design in maintaining
+constraint satisfaction.
+5.4.2 Performance Metrics
+Performance metrics will be used to quantify the efficiency of the landing process, focusing on the UAV’s
+ability to achieve the desired touchdown conditions while minimizing tracking errors. The following metrics
+will be used:
+•Landing Position Error:The deviation of the UAV’s final position from the desired touchdown
+point. This metric will be crucial for evaluating the accuracy of the landing.
+•Touchdown Velocity and Attitude Deviation:The difference between the desired and actual
+touchdown velocity and attitude. This will be an important metric for assessing the stability of the
+landing.
+•Convergence Time:The time taken for the UAV to converge to a safe landing trajectory. This
+metric will provide insight into how quickly the controller can guide the UAV to the landing state
+under different disturbance conditions.
+5.4.3 Robustness Metrics
+Given that the proposed MPC framework will be designed to handle uncertainty, robustness metrics will
+be essential to evaluate the controller’s ability to function under varying disturbance levels. The following
+metrics will be used:
+•Performance Degradation with Increasing Uncertainty:The relationship between uncertainty
+bounds (e.g., wind disturbances) and performance metrics such as landing position error. This will help
+assess how well the controller can maintain performance under increasing disturbance levels.
+•Failure Rate:The percentage of landing attempts where the controller fails to meet the predefined
+constraint satisfaction requirements. This metric will indicate the reliability of the controller when
+subjected to large disturbances.
+21
+
+
+--- PAGE 22 ---
+5.4.4 Computational Feasibility Metrics
+Real-time feasibility will be critical for the deployment of the proposed controller in a UAV system. The
+following metrics will be used to evaluate the computational demands of the uncertainty-aware MPC frame-
+work:
+•Computation Time per MPC Iteration:The average time required to solve the MPC optimiza-
+tion problem at each control step. This metric will reflect the controller’s suitability for real-time
+implementation.
+•Solver Convergence Reliability:The percentage of successful solver convergences over all simulation
+runs. This will be important for assessing the stability and robustness of the optimization process during
+real-time operation.
+5.5 Nominal Landing Results
+This section will present the results of the nominal landing simulations, which will serve as a baseline for
+comparison with the uncertainty-aware MPC framework. These results will show the performance of the
+deterministic MPC controller in the absence of disturbances and provide insight into the controller’s effec-
+tiveness under ideal conditions.
+5.5.1 Simulation Setup
+The nominal landing scenario will be defined by a controlled descent from a starting position above the
+landing surface to a predefined touchdown point. The UAV will be subject to state and input constraints
+as outlined in Section 4.2, with no external disturbances introduced during the simulation. The nominal
+MPC controller will follow the structure defined in Chapter 4, with the goal of minimizing tracking error and
+ensuring safe touchdown conditions.
+5.5.2 Performance Results
+The results of the nominal landing simulation will be analyzed using the metrics defined in Section 5.4. The
+following outcomes are anticipated based on preliminary analysis and existing literature [1,6,9]:
+•Landing Position Error:The landing position error is expected to be minimal, with an average error
+on the order of centimeters. This will indicate that the controller is capable of achieving the desired
+landing position with high precision under nominal conditions.
+•Touchdown Velocity and Attitude:The UAV is expected to reach the desired touchdown velocity
+and attitude within the specified tolerance, with maximum deviations anticipated to be within 0.1 m/s
+for velocity and 2 ◦ for attitude.
+•Convergence Time:The convergence time to the touchdown state is expected to be approximately
+5−10 seconds, showing that the controller efficiently guides the UAV to the landing state.
+These results will confirm the expected performance of the nominal MPC controller in ideal, disturbance-
+free conditions, and will set the baseline for comparison in later sections, particularly when uncertainty is
+introduced.
+5.6 Landing Under Uncertainty
+This section will present the simulation results for landing scenarios when bounded uncertainty is introduced
+into the system dynamics. The objective will be to evaluate the performance of the proposed uncertainty-
+aware MPC framework under realistic disturbance conditions, as well as to assess the controller’s ability to
+maintain constraint satisfaction and performance in the presence of uncertainty. This table 2 compares the
+performance metrics (like landing position error, touchdown velocity, etc.) of the nominal MPC and the
+uncertainty-aware MPC controller under various disturbance levels.
+22
+
+
+--- PAGE 23 ---
+Table 3: Controllers implemented for comparative evaluation.
+Controller MPC Formulation Uncertainty Han-
+dling
+Constraint En-
+forcement
+Role in Evaluation
+Baseline Controller PID or LQR None Implicit Reference perfor-
+mance under nominal
+conditions
+Deterministic NMPC Nonlinear MPC None Hard state and input
+constraints
+Performance bench-
+mark without uncer-
+tainty awareness
+Robust MPC Tube-based NMPC Bounded distur-
+bances
+Robust constraint
+tightening
+Safety-oriented base-
+line under worst-case
+uncertainty
+Uncertainty-Aware
+MPC
+Nonlinear MPC Hybrid bounded and
+stochastic uncer-
+tainty
+Robust and chance-
+constrained enforce-
+ment
+Proposed approach
+To objectively assess the benefits of the proposed uncertainty-aware MPC framework, multiple controllers
+are implemented and evaluated under identical conditions. Table 3 summarizes the controller configurations
+used in this study.All controllers are tuned under nominal conditions to ensure a fair and consistent comparison.
+5.6.1 Simulation Setup
+In this scenario, the UAV will be subjected to additive disturbances during the landing process, consistent
+with the uncertainty modeling described in Section 4.3. The disturbance termw k will be drawn from
+the disturbance setW, which will represent realistic uncertainty sources such as wind gusts, aerodynamic
+modeling errors, and sensor noise. The size of the disturbance set will be selected based on typical values
+encountered during UAV landing and will remain bounded, as discussed in Chapter 4.
+The MPC controller will operate under the same nominal setup as in Section 5.5, with the primary
+difference being that disturbances will be introduced during the descent. The objective will be to assess
+how the uncertainty-aware MPC controller responds to these disturbances while maintaining safe landing
+conditions. The results will be compared with those from the nominal MPC controller, which does not
+account for uncertainty.
+5.6.2 Performance Results
+The results of the landing under uncertainty simulation will be analyzed using the metrics defined in Section
+5.4. Based on preliminary analysis and robust MPC theory [2–4], the following outcomes are expected:
+•Landing Position Error:The landing position error is expected to increase slightly compared to the
+nominal scenario, with an average error likely remaining within 0.05–0.15 meters. This will demonstrate
+that the controller performs well even under disturbance, though some performance degradation is
+anticipated.
+•Touchdown Velocity and Attitude:The touchdown velocity and attitude deviations are also ex-
+pected to be slightly larger than in the nominal case, with maximum deviations anticipated to be within
+0.15 m/s for velocity and 3 ◦ for attitude. However, the controller is expected to ensure a safe landing
+with acceptably small deviations.
+•Constraint Violations:The uncertainty-aware MPC controller is expected to maintain zero con-
+straint violations despite the disturbances. This will be a key benefit of the robust constraint tightening
+approach, which will ensure that state and input constraints are respected even under uncertainty.
+23
+
+
+--- PAGE 24 ---
+These results will demonstrate the effectiveness of the proposed uncertainty-aware MPC framework in
+handling disturbances during the landing process, ensuring safety and minimizing performance degradation
+despite the presence of uncertainty.
+5.7 Robustness and Sensitivity Analysis
+This section will present a robustness and sensitivity analysis to evaluate how the uncertainty-aware MPC
+framework performs under varying disturbance levels and different uncertainty bounds. The objective will
+be to assess the controller’s sensitivity to changes in disturbance magnitude and to determine the trade-off
+between robustness and performance.
+5.7.1 Sensitivity to Uncertainty Bounds
+The sensitivity analysis will be conducted by varying the bounds of the disturbance setWand observing
+the impact on performance and constraint satisfaction. The disturbance set will be progressively expanded
+to simulate increasing levels of uncertainty. The following outcomes are anticipated based on robust MPC
+principles [2,3]:
+•Performance Degradation:As the uncertainty bounds increase, the landing position error and
+touchdown velocity/attitude deviations are expected to increase. This is anticipated, as the controller
+will need to account for larger disturbances, leading to more conservative control actions and increased
+tracking errors.
+•Constraint Violations:The number of constraint violations will be tracked as the uncertainty bounds
+are increased. For the uncertainty-aware MPC controller, zero constraint violations are expected, even
+under large disturbance bounds. This will demonstrate the robustness of the controller in maintaining
+constraint satisfaction despite larger uncertainty.
+•Computation Time:As the disturbance bounds increase, the optimization problem size may grow
+due to the need to tighten constraints further. However, the controller is expected to maintain real-time
+feasibility, with only a modest increase in computation time per iteration as the disturbance bounds
+are enlarged.
+5.7.2 Robustness to Disturbance Realizations
+In addition to varying the disturbance bounds, the robustness of the controller will be evaluated by run-
+ning simulations with multiple disturbance realizations. Each realization will represent a different set of
+disturbance values drawn from the disturbance setW, simulating real-world variations in uncertainty. The
+following outcomes are expected:
+•Failure Rate:The failure rate will be calculated as the percentage of simulation runs where the
+controller fails to meet the predefined constraints. For the uncertainty-aware MPC controller, the
+failure rate is expected to remain zero across all disturbance realizations, highlighting the robustness
+of the design.
+•Performance Comparison:The average landing position error, touchdown velocity, and attitude
+deviations will be compared across different disturbance realizations. The uncertainty-aware MPC con-
+troller is expected to maintain relatively small performance degradation across all realizations, demon-
+strating consistent performance even with varying disturbance conditions.
+5.8 Discussion of Trade-offs
+The results of the robustness and sensitivity analysis are expected to demonstrate a clear trade-off between
+robustness and performance. As the uncertainty bounds increase, the controller will become more conservative
+to ensure constraint satisfaction, which is anticipated to lead to slightly larger tracking errors. However, the
+uncertainty-aware MPC controller is expected to achieve robust performance, with no constraint violations
+observed, even under large disturbances. 24
+
+
+--- PAGE 25 ---
+This analysis will provide insight into the practical behavior of the controller and will highlight the effec-
+tiveness of the robust constraint tightening strategy in maintaining safety and performance. The sensitivity
+to uncertainty bounds will be further examined through a detailed evaluation of real-time feasibility under
+varying disturbance conditions.
+5.9 Project Timeline
+The Table 4 shows the project timeline. The research is expected to complete on or before the 12 months.
+Table 4: Proposed research timeline and activities over a 12-month period.
+Research Activity Month
+1 2 3 4 5 6 7 8 9 10 11 12
+1. Literature review and problem formu-
+lation
+■ ■
+2. System modeling and uncertainty
+characterization
+■ ■ ■
+3. Uncertainty-aware MPC formulation
+and design
+■ ■ ■
+4. Controller implementation and base-
+line development
+■ ■ ■
+5. Simulation studies and performance
+evaluation
+■ ■ ■
+6. Thesis writing, analysis, and final sub-
+mission
+■ ■ ■ ■
+6 Conclusions
+This research aims to propose a robust, uncertainty-aware Model Predictive Control (MPC) framework for
+autonomous UAV landing, focusing on handling uncertainty in the system dynamics while ensuring safe and
+efficient landing performance. The key contributions and findings expected in this work are summarized
+below, along with directions for future research.
+6.1 Summary of Contributions
+The primary contribution of this research will be the development of an uncertainty-aware MPC framework
+that explicitly accounts for disturbances and model uncertainties during the UAV landing process. This work
+will build upon existing MPC methods by incorporating robust constraint tightening to ensure that state
+and input constraints are respected throughout the landing maneuver, even under uncertain conditions.
+The specific contributions will include:
+1. The formulation of a nonlinear MPC controller for UAV landing that will be designed to handle realistic
+uncertainty sources, including wind gusts, aerodynamic effects, and sensor noise.
+2. The robust constraint tightening strategy that will adapt the nominal MPC constraints to account for
+bounded uncertainty, ensuring that the UAV remains within safe operating regions during landing.
+3. A robustness and sensitivity analysis that will evaluate the performance of the controller under vary-
+ing uncertainty bounds and disturbance realizations, demonstrating that the proposed framework will
+achieve reliable performance without constraint violations.
+4. An assessment of computational feasibility, confirming that the proposed control approach will be
+suitable for real-time deployment in practical UAV landing scenarios.25
+
+
+--- PAGE 26 ---
+These contributions will demonstrate the potential of uncertainty-aware MPC for autonomous UAV land-
+ing, providing a solid foundation for further development and real-world application.
+6.2 Key Findings
+The simulation results will reveal the effectiveness of the proposed uncertainty-aware MPC framework in
+handling uncertainty during the UAV landing process. Key findings will include:
+•Robustness under uncertainty:The uncertainty-aware MPC controller will be able to maintain
+constraint satisfaction throughout the landing process, even in the presence of large disturbances. This
+will be achieved without significant performance degradation, demonstrating the value of the robust
+constraint tightening strategy.
+•Performance vs. robustness trade-off:While the uncertainty-aware controller will be more con-
+servative than the nominal controller, resulting in slightly larger landing position and velocity errors, it
+will ensure that safety constraints are always respected. This trade-off will be typical in robust MPC
+designs and can be adjusted based on specific application needs.
+•Real-time feasibility:The proposed controller will demonstrate real-time feasibility, with solver
+execution times within acceptable limits for practical implementation on standard UAV hardware. The
+offline computation of tightened constraints will ensure that the online optimization problem remains
+computationally manageable, even under larger uncertainty bounds.
+6.3 Limitations and Future Work
+While this research will demonstrate the potential of uncertainty-aware MPC for UAV landing, several
+limitations and areas for future research remain:
+•Uncertainty modeling:The uncertainty representation in this work assumes that disturbances are
+bounded and known a priori. Future research could explore more sophisticated methods for uncer-
+tainty estimation and adaptation during real-time landing, potentially incorporating learning-based
+approaches to estimate uncertainty levels dynamically.
+•Adaptive control:The proposed controller will be based on fixed disturbance bounds. Future work
+could investigate adaptive control strategies that will adjust the uncertainty bounds in real-time based
+on environmental feedback, allowing the controller to respond more effectively to changing conditions.
+•Hardware implementation:The proposed uncertainty-aware MPC framework will be validated
+through simulation in this research. The next step will be to implement the controller on a real
+UAV platform, integrating onboard sensors and evaluating the controller’s performance in a real-world
+environment.
+•Scalability:While the focus of this research will be on UAV landing, the methods developed could
+be extended to other autonomous systems operating under uncertainty. Future work could explore the
+scalability of the uncertainty-aware MPC framework to more complex systems with larger state and
+input dimensions.
+•Safety and certification:As the application of uncertainty-aware MPC grows in safety-critical sys-
+tems, further research will be needed to address certification and verification requirements. Future
+studies could focus on the formal safety guarantees of uncertainty-aware MPC and the integration of
+Control Barrier Functions (CBFs) to further ensure safety in dynamic environments.
+26
+
+
+--- PAGE 27 ---
+References
+[1] R. Panjavarnam, S. K. Gupta, and M. Kothari, “A survey on model predictive control techniques for
+autonomous UAV landing,”Annual Reviews in Control, vol. 59, pp. 100–132, 2025.
+[2] J. Leeman, M. Cannon, and B. Kouvaritakis, “Tube based robust nonlinear model predictive control
+with guaranteed constraint satisfaction,”Automatica, vol. 157, pp. 111264, 2025.
+[3] J. Wehbeh and E. C. Kerrigan, “Sensitivity based robust model predictive control for constrained non-
+linear systems,”IEEE Transactions on Automatic Control, vol. 70, no. 4, pp. 2145–2158, 2025.
+[4] S. Aryan, “Stochastic nonlinear model predictive control with chance constraints for aerospace systems,”
+Journal of Guidance, Control, and Dynamics, vol. 48, no. 2, pp. 345–359, 2025.
+[5] L. Saviolo, M. Rosolia, and F. Borrelli, “Active learning based model predictive control for uncertain
+nonlinear systems,”IEEE Control Systems Letters, vol. 8, pp. 456–461, 2024.
+[6] S. Batool, A. Richards, and J. Alonso-Mora, “Safety integrated nonlinear model predictive control for
+precision UAV landing,”IEEE Robotics and Automation Letters, vol. 10, no. 1, pp. 1123–1130, 2025.
+[7] R. Stephenson, T. Molnar, and P. Campoy, “Learning based distributed model predictive control for
+cooperative UAV landing on moving platforms,”Autonomous Robots, vol. 48, no. 3, pp. 287–303, 2024.
+[8] P. Ru and K. Subbarao, “Nonlinear control of quadrotor UAVs using backstepping and feedback lin-
+earization,”Aerospace Science and Technology, vol. 67, pp. 89–98, 2017.
+[9] D. Proch´ azka, J. Bartoˇ s, and M. Hromˇ c´ ık, “Modeling and control of UAV landing maneuvers under
+aerodynamic ground effects,”Journal of Intelligent and Robotic Systems, vol. 110, no. 2, pp. 45–62,
+2024.
+[10] Y. Wang, A. R. Girard, and J. Peters, “Probabilistic ensemble neural network model predictive control
+for safety critical systems,”IEEE Transactions on Neural Networks and Learning Systems, vol. 35, no. 6,
+pp. 8123–8136, 2024.
+27

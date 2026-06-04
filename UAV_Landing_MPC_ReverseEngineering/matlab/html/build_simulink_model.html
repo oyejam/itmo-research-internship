@@ -1,0 +1,153 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>build_simulink_model</title><meta name="generator" content="MATLAB 9.10"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2026-05-31"><meta name="DC.source" content="build_simulink_model.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><pre class="codeinput"><span class="keyword">function</span> build_simulink_model()
+<span class="comment">%BUILD_SIMULINK_MODEL Builds an executable Simulink harness for MATLAB R2021a.</span>
+
+params = initialize_paper_parameters();
+modelName = <span class="string">'uav_landing_mpc_faa_model'</span>;
+
+<span class="keyword">if</span> bdIsLoaded(modelName)
+    close_system(modelName, 0);
+<span class="keyword">end</span>
+new_system(modelName);
+open_system(modelName);
+
+add_block(<span class="string">'simulink/Sources/Clock'</span>, [modelName <span class="string">'/Clock'</span>], <span class="string">'Position'</span>, [40 90 70 120]);
+add_block(<span class="string">'simulink/User-Defined Functions/Interpreted MATLAB Function'</span>, <span class="keyword">...</span>
+    [modelName <span class="string">'/MPC FAA Landing Step'</span>], <span class="string">'Position'</span>, [150 70 370 140]);
+add_block(<span class="string">'simulink/Sinks/To Workspace'</span>, [modelName <span class="string">'/landing_logs'</span>], <span class="string">'Position'</span>, [470 85 570 125]);
+
+set_param([modelName <span class="string">'/MPC FAA Landing Step'</span>], <span class="string">'MATLABFcn'</span>, <span class="string">'simulink_landing_step'</span>);
+set_param([modelName <span class="string">'/landing_logs'</span>], <span class="string">'VariableName'</span>, <span class="string">'simulink_landing_logs'</span>);
+set_param([modelName <span class="string">'/landing_logs'</span>], <span class="string">'SaveFormat'</span>, <span class="string">'Array'</span>);
+
+add_line(modelName, <span class="string">'Clock/1'</span>, <span class="string">'MPC FAA Landing Step/1'</span>);
+add_line(modelName, <span class="string">'MPC FAA Landing Step/1'</span>, <span class="string">'landing_logs/1'</span>);
+
+set_param(modelName, <span class="string">'StopTime'</span>, num2str(params.stateMachine.maxTime));
+set_param(modelName, <span class="string">'Solver'</span>, <span class="string">'FixedStepDiscrete'</span>);
+set_param(modelName, <span class="string">'FixedStep'</span>, num2str(params.sim.dt));
+
+annotationText = sprintf([<span class="string">'This Simulink harness mirrors the paper pipeline:\\n'</span> <span class="keyword">...</span>
+    <span class="string">'USV prediction -&gt; mission state machine -&gt; MPC-FAA trajectory generator -&gt; linearized UAV plant.\\n'</span> <span class="keyword">...</span>
+    <span class="string">'The Interpreted MATLAB Function calls simulink_landing_step.m, which uses the same functions as run_main.m.'</span>]);
+note = Simulink.Annotation(modelName, annotationText);
+note.Position = [40 300 760 370];
+
+save_system(modelName, fullfile(fileparts(mfilename(<span class="string">'fullpath'</span>)), [modelName <span class="string">'.slx'</span>]));
+fprintf(<span class="string">'Created Simulink model: %s\n'</span>, fullfile(fileparts(mfilename(<span class="string">'fullpath'</span>)), [modelName <span class="string">'.slx'</span>]));
+<span class="keyword">end</span>
+</pre><pre class="codeoutput">Warning: The model name 'uav_landing_mpc_faa_model' is shadowing another name in
+the MATLAB workspace or path. Type "which -all uav_landing_mpc_faa_model" at the
+command line to find the other uses of this name. You should change the name of
+the model to avoid problems. 
+Created Simulink model: /Users/jamiuolaideoyetunde/Desktop/Research Internship - ITMO Course Work/UAV_Landing_MPC_ReverseEngineering/matlab/uav_landing_mpc_faa_model.slx
+</pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2021a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+function build_simulink_model()
+%BUILD_SIMULINK_MODEL Builds an executable Simulink harness for MATLAB R2021a.
+
+params = initialize_paper_parameters();
+modelName = 'uav_landing_mpc_faa_model';
+
+if bdIsLoaded(modelName)
+    close_system(modelName, 0);
+end
+new_system(modelName);
+open_system(modelName);
+
+add_block('simulink/Sources/Clock', [modelName '/Clock'], 'Position', [40 90 70 120]);
+add_block('simulink/User-Defined Functions/Interpreted MATLAB Function', ...
+    [modelName '/MPC FAA Landing Step'], 'Position', [150 70 370 140]);
+add_block('simulink/Sinks/To Workspace', [modelName '/landing_logs'], 'Position', [470 85 570 125]);
+
+set_param([modelName '/MPC FAA Landing Step'], 'MATLABFcn', 'simulink_landing_step');
+set_param([modelName '/landing_logs'], 'VariableName', 'simulink_landing_logs');
+set_param([modelName '/landing_logs'], 'SaveFormat', 'Array');
+
+add_line(modelName, 'Clock/1', 'MPC FAA Landing Step/1');
+add_line(modelName, 'MPC FAA Landing Step/1', 'landing_logs/1');
+
+set_param(modelName, 'StopTime', num2str(params.stateMachine.maxTime));
+set_param(modelName, 'Solver', 'FixedStepDiscrete');
+set_param(modelName, 'FixedStep', num2str(params.sim.dt));
+
+annotationText = sprintf(['This Simulink harness mirrors the paper pipeline:\\n' ...
+    'USV prediction -> mission state machine -> MPC-FAA trajectory generator -> linearized UAV plant.\\n' ...
+    'The Interpreted MATLAB Function calls simulink_landing_step.m, which uses the same functions as run_main.m.']);
+note = Simulink.Annotation(modelName, annotationText);
+note.Position = [40 300 760 370];
+
+save_system(modelName, fullfile(fileparts(mfilename('fullpath')), [modelName '.slx']));
+fprintf('Created Simulink model: %s\n', fullfile(fileparts(mfilename('fullpath')), [modelName '.slx']));
+end
+
+##### SOURCE END #####
+--></body></html>

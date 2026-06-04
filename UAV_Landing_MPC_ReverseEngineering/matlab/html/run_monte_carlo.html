@@ -1,0 +1,241 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>run_monte_carlo</title><meta name="generator" content="MATLAB 9.10"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2026-06-03"><meta name="DC.source" content="run_monte_carlo.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><pre class="codeinput">clear; clc; close <span class="string">all</span>;
+addpath(fileparts(mfilename(<span class="string">'fullpath'</span>)));
+
+params = initialize_paper_parameters();
+nRuns = 100;
+
+metrics = struct(<span class="string">'positionDeviation'</span>, zeros(nRuns,1), <span class="keyword">...</span>
+    <span class="string">'horizontalVelocityDeviation'</span>, zeros(nRuns,1), <span class="keyword">...</span>
+    <span class="string">'rollDeviation'</span>, zeros(nRuns,1), <span class="keyword">...</span>
+    <span class="string">'pitchDeviation'</span>, zeros(nRuns,1), <span class="keyword">...</span>
+    <span class="string">'yawDeviation'</span>, zeros(nRuns,1), <span class="keyword">...</span>
+    <span class="string">'touchdownTime'</span>, zeros(nRuns,1), <span class="keyword">...</span>
+    <span class="string">'success'</span>, false(nRuns,1));
+
+<span class="keyword">for</span> i = 1:nRuns
+    result = simulate_landing_trial(params, i, false);
+    metrics.positionDeviation(i) = result.metrics.positionDeviation;
+    metrics.horizontalVelocityDeviation(i) = result.metrics.horizontalVelocityDeviation;
+    metrics.rollDeviation(i) = rad2deg(result.metrics.rollDeviation);
+    metrics.pitchDeviation(i) = rad2deg(result.metrics.pitchDeviation);
+    metrics.yawDeviation(i) = rad2deg(result.metrics.yawDeviation);
+    metrics.touchdownTime(i) = result.touchdownTime;
+    metrics.success(i) = result.success;
+    fprintf(<span class="string">'Run %3d/%3d: success=%d pos=%.3f m time=%.2f s\n'</span>, <span class="keyword">...</span>
+        i, nRuns, result.success, result.metrics.positionDeviation, result.touchdownTime);
+<span class="keyword">end</span>
+
+save(fullfile(params.paths.results, <span class="string">'monte_carlo_metrics.mat'</span>), <span class="string">'metrics'</span>, <span class="string">'params'</span>);
+plot_monte_carlo_statistics(metrics, params);
+</pre><pre class="codeoutput">Run   1/100: success=0 pos=56.561 m time=69.90 s
+Run   2/100: success=0 pos=57.124 m time=69.90 s
+Run   3/100: success=0 pos=53.115 m time=69.90 s
+Run   4/100: success=0 pos=42.753 m time=69.90 s
+Run   5/100: success=0 pos=54.697 m time=69.90 s
+Run   6/100: success=0 pos=43.855 m time=69.90 s
+Run   7/100: success=0 pos=57.910 m time=69.90 s
+Run   8/100: success=0 pos=52.077 m time=69.90 s
+Run   9/100: success=0 pos=60.190 m time=69.90 s
+Run  10/100: success=0 pos=52.220 m time=69.90 s
+Run  11/100: success=0 pos=57.552 m time=69.90 s
+Run  12/100: success=0 pos=58.103 m time=69.90 s
+Run  13/100: success=0 pos=50.486 m time=69.90 s
+Run  14/100: success=0 pos=52.912 m time=69.90 s
+Run  15/100: success=0 pos=47.662 m time=69.90 s
+Run  16/100: success=0 pos=57.271 m time=69.90 s
+Run  17/100: success=0 pos=55.791 m time=69.90 s
+Run  18/100: success=0 pos=52.984 m time=69.90 s
+Run  19/100: success=0 pos=59.091 m time=69.90 s
+Run  20/100: success=0 pos=50.549 m time=69.90 s
+Run  21/100: success=0 pos=64.064 m time=69.90 s
+Run  22/100: success=0 pos=59.552 m time=69.90 s
+Run  23/100: success=0 pos=53.178 m time=69.90 s
+Run  24/100: success=0 pos=48.687 m time=69.90 s
+Run  25/100: success=0 pos=47.151 m time=69.90 s
+Run  26/100: success=0 pos=57.771 m time=69.90 s
+Run  27/100: success=0 pos=54.279 m time=69.90 s
+Run  28/100: success=0 pos=52.063 m time=69.90 s
+Run  29/100: success=0 pos=47.253 m time=69.90 s
+Run  30/100: success=0 pos=50.916 m time=69.90 s
+Run  31/100: success=0 pos=54.597 m time=69.90 s
+Run  32/100: success=0 pos=52.474 m time=69.90 s
+Run  33/100: success=0 pos=59.151 m time=69.90 s
+Run  34/100: success=0 pos=58.365 m time=69.90 s
+Run  35/100: success=0 pos=55.623 m time=69.90 s
+Run  36/100: success=0 pos=52.575 m time=69.90 s
+Run  37/100: success=0 pos=50.889 m time=69.90 s
+Run  38/100: success=0 pos=56.220 m time=69.90 s
+Run  39/100: success=0 pos=53.544 m time=69.90 s
+Run  40/100: success=0 pos=56.719 m time=69.90 s
+Run  41/100: success=0 pos=59.975 m time=69.90 s
+Run  42/100: success=0 pos=56.607 m time=69.90 s
+Run  43/100: success=0 pos=60.201 m time=69.90 s
+Run  44/100: success=0 pos=50.340 m time=69.90 s
+Run  45/100: success=0 pos=48.789 m time=69.90 s
+Run  46/100: success=0 pos=51.127 m time=69.90 s
+Run  47/100: success=0 pos=62.130 m time=69.90 s
+Run  48/100: success=0 pos=60.647 m time=69.90 s
+Run  49/100: success=0 pos=58.262 m time=69.90 s
+Run  50/100: success=0 pos=54.875 m time=69.90 s
+Run  51/100: success=0 pos=53.689 m time=69.90 s
+Run  52/100: success=0 pos=48.368 m time=69.90 s
+Run  53/100: success=0 pos=47.998 m time=69.90 s
+Run  54/100: success=0 pos=55.260 m time=69.90 s
+Run  55/100: success=0 pos=60.598 m time=69.90 s
+Run  56/100: success=0 pos=51.548 m time=69.90 s
+Run  57/100: success=0 pos=62.069 m time=69.90 s
+Run  58/100: success=0 pos=57.471 m time=69.90 s
+Run  59/100: success=0 pos=46.720 m time=69.90 s
+Run  60/100: success=0 pos=59.306 m time=69.90 s
+Run  61/100: success=0 pos=47.288 m time=69.90 s
+Run  62/100: success=0 pos=61.531 m time=69.90 s
+Run  63/100: success=0 pos=53.460 m time=69.90 s
+Run  64/100: success=0 pos=56.440 m time=69.90 s
+Run  65/100: success=0 pos=62.012 m time=69.90 s
+Run  66/100: success=0 pos=58.084 m time=69.90 s
+Run  67/100: success=0 pos=51.935 m time=69.90 s
+Run  68/100: success=0 pos=58.888 m time=69.90 s
+Run  69/100: success=0 pos=56.045 m time=69.90 s
+Run  70/100: success=0 pos=46.041 m time=69.90 s
+Run  71/100: success=0 pos=60.383 m time=69.90 s
+Run  72/100: success=0 pos=68.675 m time=69.90 s
+Run  73/100: success=0 pos=52.207 m time=69.90 s
+Run  74/100: success=0 pos=57.094 m time=69.90 s
+Run  75/100: success=0 pos=54.302 m time=69.90 s
+Run  76/100: success=0 pos=56.625 m time=69.90 s
+Run  77/100: success=0 pos=51.618 m time=69.90 s
+Run  78/100: success=0 pos=64.407 m time=69.90 s
+Run  79/100: success=0 pos=54.037 m time=69.90 s
+Run  80/100: success=0 pos=53.129 m time=69.90 s
+Run  81/100: success=0 pos=56.660 m time=69.90 s
+Run  82/100: success=0 pos=55.319 m time=69.90 s
+Run  83/100: success=0 pos=57.379 m time=69.90 s
+Run  84/100: success=0 pos=61.581 m time=69.90 s
+Run  85/100: success=0 pos=51.139 m time=69.90 s
+Run  86/100: success=0 pos=65.785 m time=69.90 s
+Run  87/100: success=0 pos=49.523 m time=69.90 s
+Run  88/100: success=0 pos=51.665 m time=69.90 s
+Run  89/100: success=0 pos=54.959 m time=69.90 s
+Run  90/100: success=0 pos=62.117 m time=69.90 s
+Run  91/100: success=0 pos=64.625 m time=69.90 s
+Run  92/100: success=0 pos=44.225 m time=69.90 s
+Run  93/100: success=0 pos=52.035 m time=69.90 s
+Run  94/100: success=0 pos=49.562 m time=69.90 s
+Run  95/100: success=0 pos=58.182 m time=69.90 s
+Run  96/100: success=0 pos=57.399 m time=69.90 s
+Run  97/100: success=0 pos=45.960 m time=69.90 s
+Run  98/100: success=0 pos=51.655 m time=69.90 s
+Run  99/100: success=0 pos=51.262 m time=69.90 s
+Run 100/100: success=0 pos=54.230 m time=69.90 s
+
+Monte Carlo summary:
+  success rate: 0.0 %
+  position deviation N(54.834, 5.122^2)
+  horizontal velocity N(0.291, 0.144^2)
+  roll deviation N(0.228, 1.884^2) deg
+  pitch deviation N(-0.812, 3.436^2) deg
+  yaw deviation N(-19.677, 0.220^2) deg
+</pre><img vspace="5" hspace="5" src="run_monte_carlo_01.png" alt=""> <p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2021a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+clear; clc; close all;
+addpath(fileparts(mfilename('fullpath')));
+
+params = initialize_paper_parameters();
+nRuns = 100;
+
+metrics = struct('positionDeviation', zeros(nRuns,1), ...
+    'horizontalVelocityDeviation', zeros(nRuns,1), ...
+    'rollDeviation', zeros(nRuns,1), ...
+    'pitchDeviation', zeros(nRuns,1), ...
+    'yawDeviation', zeros(nRuns,1), ...
+    'touchdownTime', zeros(nRuns,1), ...
+    'success', false(nRuns,1));
+
+for i = 1:nRuns
+    result = simulate_landing_trial(params, i, false);
+    metrics.positionDeviation(i) = result.metrics.positionDeviation;
+    metrics.horizontalVelocityDeviation(i) = result.metrics.horizontalVelocityDeviation;
+    metrics.rollDeviation(i) = rad2deg(result.metrics.rollDeviation);
+    metrics.pitchDeviation(i) = rad2deg(result.metrics.pitchDeviation);
+    metrics.yawDeviation(i) = rad2deg(result.metrics.yawDeviation);
+    metrics.touchdownTime(i) = result.touchdownTime;
+    metrics.success(i) = result.success;
+    fprintf('Run %3d/%3d: success=%d pos=%.3f m time=%.2f s\n', ...
+        i, nRuns, result.success, result.metrics.positionDeviation, result.touchdownTime);
+end
+
+save(fullfile(params.paths.results, 'monte_carlo_metrics.mat'), 'metrics', 'params');
+plot_monte_carlo_statistics(metrics, params);
+
+
+##### SOURCE END #####
+--></body></html>
