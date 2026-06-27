@@ -36,6 +36,12 @@
     urlcolor=blue
 }
 
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, fit, backgrounds, calc}
+\definecolor{envblue}{RGB}{46,109,164}
+\definecolor{ctrlamber}{RGB}{201,123,58}
+\definecolor{plantteal}{RGB}{40,124,124}
+
 \begin{document}
 
 \begin{center}
@@ -252,12 +258,46 @@ where $\bar{\bm{C}}_a$ is the controllability (prediction) matrix of the augment
 \end{align}
 
 \section{Mission and Navigation State Machine}
-A finite state machine segments the mission into three phases (NAVIGATION, FOLLOW, LANDING) and selects the reference handed to the MPC:
+A finite state machine, shown in Figure~\ref{fig:statemachine}, segments the mission into three phases (NAVIGATION, FOLLOW, LANDING) and selects the reference handed to the MPC. Each phase groups two or three granular states, and the forward transitions are guarded by the conditions annotated in the figure:
+
 \begin{itemize}[itemsep=2pt]
     \item \textbf{NAVIGATION} = \{\textsc{Get altitude}, \textsc{Approach}\}: the UAV ascends to the approach altitude $h_a$ and flies to the USV's GNSS location, heading toward it, until visual contact.
     \item \textbf{FOLLOW} = \{\textsc{Tracking}, \textsc{Tracking stable}\}: the UAV descends to the tracking altitude $h_t$ above the deck and follows the USV (its predicted velocity is added to the reference) until the landing conditions (horizontal distance, feasible predicted trajectory, bounded position covariance) hold.
     \item \textbf{LANDING} = \{\textsc{Descent}, \textsc{Flare}, \textsc{Landed}\}: the UAV descends at constant relative vertical speed, then flares, tracking the full deck pose, velocity, and Euler rates, until touchdown, at which point the motors are disarmed.
 \end{itemize}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  font=\small, >={Stealth[length=2.4mm]},
+  st/.style={rectangle, rounded corners=2pt, draw, semithick, fill=gray!6,
+             align=center, text width=40mm, minimum height=9mm, inner sep=3pt},
+  cond/.style={font=\footnotesize\itshape, fill=white, inner sep=1.5pt}]
+  \node[st] (ga) {GET\_ALTITUDE};
+  \node[st, below=8mm of ga] (ap) {APPROACH};
+  \node[st, below=13mm of ap] (tr) {TRACKING};
+  \node[st, below=8mm of tr] (ts) {TRACKING\_STABLE};
+  \node[st, below=13mm of ts] (de) {DESCENT};
+  \node[st, below=8mm of de] (fl) {FLARE};
+  \node[st, below=8mm of fl] (la) {LANDED};
+  \draw[->,semithick] (ga) -- node[cond,right]{$|z-h_a|<0.6$~m} (ap);
+  \draw[->,semithick] (ap) -- node[cond,right]{visual contact} (tr);
+  \draw[->,semithick] (tr) -- node[cond,right]{aligned at $h_t$} (ts);
+  \draw[->,semithick] (ts) -- node[cond,right]{stable and centred} (de);
+  \draw[->,semithick] (de) -- node[cond,right]{$d<$ flare height} (fl);
+  \draw[->,semithick] (fl) -- node[cond,right]{touchdown} (la);
+  \begin{scope}[on background layer]
+    \node[fit=(ga)(ap), draw=envblue, fill=envblue!8, rounded corners, inner sep=3mm,
+          label={[envblue,font=\bfseries\footnotesize]left:NAVIGATION}] {};
+    \node[fit=(tr)(ts), draw=ctrlamber, fill=ctrlamber!8, rounded corners, inner sep=3mm,
+          label={[ctrlamber,font=\bfseries\footnotesize]left:FOLLOW}] {};
+    \node[fit=(de)(fl)(la), draw=plantteal, fill=plantteal!8, rounded corners, inner sep=3mm,
+          label={[plantteal,font=\bfseries\footnotesize]left:LANDING}] {};
+  \end{scope}
+\end{tikzpicture}
+\caption{Mission state machine reproduced from the original paper (cf.\ Fig.~3 therein), grouped into the NAVIGATION, FOLLOW, and LANDING phases; forward transitions are labelled with their triggering conditions. A fallback transition from DESCENT back to TRACKING (omitted for clarity) re-engages tracking if alignment is lost before flare.}
+\label{fig:statemachine}
+\end{figure}
 
 \section{Trajectory Generation and Forcing Attitude Alignment}
 During NAVIGATION a point reference at altitude $h_a$ above the UAV is used; during FOLLOW the predicted USV velocity is added; during DESCENT the $z$-reference is sampled to hold a constant relative approach velocity; and during FLARE the predicted position, linear velocity, attitude, and Euler rates of the deck are all supplied to the MPC. Tracking all deck states does not by itself guarantee a level touchdown, because the UAV's horizontal acceleration is produced by tilting, coupling roll/pitch into the position it must also track. To resolve this, the paper dynamically modifies $\bm{Q}_{[t]}$ using the exponential \emph{Forcing Attitude Alignment} function (33)
@@ -279,7 +319,7 @@ with steepness $q_i$, amplitude $A_i$, angular frequency $\omega_{wi}$, random p
 % ============================================================================
 
 \section{Code Organisation}
-The reproduction is implemented in MATLAB (developed and tested against R2021a) with a Simulink harness. The repository is organised so that each mathematical object of Chapter~\ref{ch:method} maps to one source file (Table~\ref{tab:files}). The single entry point \texttt{run\_all.m} reproduces both experiments and writes all figures and \texttt{.mat} logs to \texttt{results/}.
+The reproduction is implemented in MATLAB (developed and tested against R2021a) with a Simulink harness. The components of Chapter~\ref{ch:method} are connected into the closed-loop landing pipeline of Figure~\ref{fig:workflow}: the Gerstner USV model and deck-state predictor supply the mission state machine and FAA-weighted reference generator, which drive the input-increment MPC and, through it, the hover-linearised UAV model. The repository is organised so that each mathematical object of that pipeline maps to one source file (Table~\ref{tab:files}). The single entry point \texttt{run\_all.m} reproduces both experiments and writes all figures and \texttt{.mat} logs to \texttt{results/}.
 
 \begin{table}[H]
 \centering
@@ -308,6 +348,36 @@ build\_simulink\_model.m        & Generates the executable Simulink harness. \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  font=\small, >={Stealth[length=2.4mm]},
+  block/.style={rectangle, rounded corners=2pt, draw, semithick,
+                align=center, text width=34mm, minimum height=12mm, inner sep=3pt},
+  env/.style={block, draw=envblue, fill=envblue!10},
+  ctrl/.style={block, draw=ctrlamber, fill=ctrlamber!12},
+  plant/.style={block, draw=plantteal, fill=plantteal!10},
+  sig/.style={font=\footnotesize\itshape, inner sep=1.5pt}]
+  \node[env] (usv) {USV $+$ waves\\[-1pt]{\scriptsize 3-component Gerstner}};
+  \node[env,  below=9mm of usv]  (pred) {Deck-state predictor\\[-1pt]{\scriptsize $N$-step horizon}};
+  \node[ctrl, right=12mm of pred] (sm)  {Mission state machine\\[-1pt]{\scriptsize NAV / FOLLOW / LANDING}};
+  \node[ctrl, right=12mm of sm]   (ref) {Reference $+$ FAA\\[-1pt]{\scriptsize time-varying $\bm{Q}(t)$}};
+  \node[ctrl, below=11mm of ref]  (mpc) {MPC QP solver\\[-1pt]{\scriptsize $\Delta\bm{u}$, soft constraints}};
+  \node[plant, below=11mm of pred] (uav) {UAV 12-state model\\[-1pt]{\scriptsize hover-linearised}};
+  \draw[->,semithick] (usv) -- node[sig,right]{deck truth} (pred);
+  \draw[->,semithick] (pred) -- node[sig,above]{deck} (sm);
+  \draw[->,semithick] (sm) -- node[sig,above]{mode} (ref);
+  \draw[->,semithick] (ref) -- node[sig,right]{$\bm{r},\,\bm{Q}(t)$} (mpc);
+  \draw[->,semithick] (mpc) -- node[sig,above]{$\Delta\bm{u}\to\bm{u}$} (uav);
+  \draw[->,semithick] (uav) -- node[sig,left]{state $\bm{x}$} (pred);
+\end{tikzpicture}
+\caption{Closed-loop MPC--FAA landing pipeline implemented in this reproduction. The Gerstner USV model feeds an $N$-step deck-state predictor; the mission state machine and the FAA-weighted reference generator (time-varying $\bm{Q}(t)$, Eq.~\eqref{eq:faa}) drive the input-increment MPC, whose rotor-speed command is applied to the hover-linearised UAV model (Eq.~\eqref{eq:lin}). The UAV state $\bm{x}$ is fed back each sampling step.}
+\label{fig:workflow}
+\end{figure}
+
 
 \section{Parameters}
 Tables~\ref{tab:t3} and~\ref{tab:t4} list the reproduced settings, taken from Tables~3 and~4 of the original paper~\cite{prochazka2024}; the UAV physical constants are those of the \SI{3.5}{kg}, \SI{0.325}{m}-arm multirotor described in the paper's Section~5.1.

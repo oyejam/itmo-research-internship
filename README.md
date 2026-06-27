@@ -142,7 +142,15 @@ The paper relies on components that are **not published numerically**: the ident
 
 ## Citation
 
-If you use this reproduction, please cite the **original paper** above. This repository builds on the author's previous-semester report, *"Uncertainty-Aware Model Predictive Control for Constrained Nonlinear Systems: A UAV Landing Case Study"* (ITMO, 2026), included in `docs/references/`.
+If you use this reproduction, please cite the **original paper**:
+
+> O. Procházka, F. Novák, T. Báča, P. M. Gupta, R. Pěnička, and M. Saska, "Model predictive control-based trajectory generation for agile landing of an unmanned aerial vehicle on a moving boat," *Ocean Engineering*, vol. 318, p. 119164, 2024. doi: [10.1016/j.oceaneng.2024.119164](https://doi.org/10.1016/j.oceaneng.2024.119164)
+
+To cite **this reproduction**:
+
+> O. J. Oyetunde, *Reverse-Engineering Reproduction of Model Predictive Control–Based Trajectory Generation for Agile Landing of a UAV on a Moving Boat*, Research Internship Report (Semester II), ITMO University, Saint Petersburg, Russia, 2026. Available: https://github.com/oyejam/itmo-research-internship
+
+This repository builds on the author's previous-semester report, *"Uncertainty-Aware Model Predictive Control for Constrained Nonlinear Systems: A UAV Landing Case Study"* (ITMO, 2026), included in `docs/references/`.
 
 ## License / academic integrity
 
