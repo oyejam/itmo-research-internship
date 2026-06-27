@@ -1,0 +1,37 @@
+# Verified Reference List
+
+All entries below were verified during this work (June 2026) against publisher pages, DOI resolvers, and/or arXiv. Every entry is retrievable as a PDF. DOIs are given as `https://doi.org/...` links. IEEE style.
+
+**Legend:** `[NEW]` = added this semester · `[CORRECTED]` = existed in last semester's report but with wrong venue/title, now fixed to the real publication · `[FOUND.]` = foundational/classical reference.
+
+| # | Reference (IEEE) | Link | Status |
+|---|---|---|---|
+| 1 | O. Procházka, F. Novák, T. Báča, P. M. Gupta, R. Pěnička, and M. Saska, "Model predictive control-based trajectory generation for agile landing of unmanned aerial vehicle on a moving boat," *Ocean Engineering*, vol. 318, p. 119164, 2024. | https://doi.org/10.1016/j.oceaneng.2024.119164 | PRIMARY |
+| 2 | F. Novák, T. Báča, O. Procházka, and M. Saska, "State estimation of marine vessels affected by waves by unmanned aerial vehicles," *Ocean Engineering*, vol. 323, p. 120606, 2025. | https://doi.org/10.1016/j.oceaneng.2025.120606 | [NEW] |
+| 3 | P. M. Gupta, É. Pairet, T. P. Nascimento, and M. Saska, "Landing a UAV in harsh winds and turbulent open waters," *IEEE Robotics and Automation Letters*, vol. 8, no. 2, pp. 744–751, 2023. | https://doi.org/10.1109/LRA.2022.3231831 | [NEW] |
+| 4 | R. Panjavarnam, S. K. Gupta, and M. Kothari, "Model predictive control for autonomous UAV landings: A comprehensive review of strategies, applications and challenges," *The Journal of Engineering*, vol. 2025, no. 7, e70085, 2025. | https://doi.org/10.1049/tje2.70085 | [CORRECTED] |
+| 5 | J. F. Stephenson, W. S. Stewart, and M. Greeff, "A time and place to land: Online learning-based distributed MPC for multirotor landing on surface vessel in waves," *arXiv:2410.21674*, 2024. | https://doi.org/10.48550/arXiv.2410.21674 | [NEW] |
+| 6 | R. Xu, C. Liu, Z. Cao, Y. Wang, and H. Qian, "A manipulator-assisted multiple UAV landing system for USV subject to disturbance," *Ocean Engineering*, vol. 299, p. 117306, 2024. | https://doi.org/10.1016/j.oceaneng.2024.117306 | [NEW] |
+| 7 | T. I. Fossen, *Handbook of Marine Craft Hydrodynamics and Motion Control*. Chichester, U.K.: Wiley, 2011. ISBN 978-1-119-99149-6. | https://doi.org/10.1002/9781119994138 | [FOUND.] |
+| 8 | D. Q. Mayne, J. B. Rawlings, C. V. Rao, and P. O. M. Scokaert, "Constrained model predictive control: Stability and optimality," *Automatica*, vol. 36, no. 6, pp. 789–814, 2000. | https://doi.org/10.1016/S0005-1098(99)00214-9 | [FOUND.] |
+| 9 | C. E. García, D. M. Prett, and M. Morari, "Model predictive control: Theory and practice—A survey," *Automatica*, vol. 25, no. 3, pp. 335–348, 1989. | https://doi.org/10.1016/0005-1098(89)90002-2 | [FOUND.] |
+| 10 | J. Köhler, M. A. Müller, and F. Allgöwer, "A computationally efficient robust model predictive control framework for uncertain nonlinear systems," *IEEE Transactions on Automatic Control*, vol. 66, no. 2, pp. 794–801, 2021. | https://doi.org/10.1109/TAC.2020.2985385 | [NEW] |
+| 11 | T. Báča, M. Petrlík, M. Vrba, V. Spurný, R. Pěnička, D. Hert, and M. Saska, "The MRS UAV system: Pushing the frontiers of reproducible research, real-world deployment, and education with autonomous unmanned aerial vehicles," *Journal of Intelligent & Robotic Systems*, vol. 102, no. 26, 2021. | https://doi.org/10.1007/s10846-021-01383-5 | [NEW] |
+| 12 | P. Ru and K. Subbarao, "Nonlinear model predictive control for unmanned aerial vehicles," *Aerospace*, vol. 4, no. 2, p. 31, 2017. | https://doi.org/10.3390/aerospace4020031 | [CORRECTED] |
+| 13 | G. V. Raffo, M. G. Ortega, and F. R. Rubio, "An integral predictive/nonlinear H∞ control structure for a quadrotor helicopter," *Automatica*, vol. 46, no. 1, pp. 29–39, 2010. | https://doi.org/10.1016/j.automatica.2009.10.018 | [NEW] |
+| 14 | T. Lee, M. Leok, and N. H. McClamroch, "Geometric tracking control of a quadrotor UAV on SE(3)," in *Proc. 49th IEEE Conf. Decision and Control (CDC)*, 2010, pp. 5420–5425. | https://doi.org/10.1109/CDC.2010.5717652 | [FOUND.] |
+| 15 | D. Mellinger and V. Kumar, "Minimum snap trajectory generation and control for quadrotors," in *Proc. IEEE Int. Conf. Robotics and Automation (ICRA)*, 2011, pp. 2520–2525. | https://doi.org/10.1109/ICRA.2011.5980409 | [FOUND.] |
+| 16 | V. Walter, N. Staub, A. Franchi, and M. Saska, "UVDAR system for visual relative localization with application to leader–follower formations of multirotor UAVs," *IEEE Robotics and Automation Letters*, vol. 4, no. 3, pp. 2637–2644, 2019. | https://doi.org/10.1109/LRA.2019.2901683 | [NEW] |
+| 17 | E. Olson, "AprilTag: A robust and flexible visual fiducial system," in *Proc. IEEE Int. Conf. Robotics and Automation (ICRA)*, 2011, pp. 3400–3407. | https://doi.org/10.1109/ICRA.2011.5979561 | [NEW] |
+| 18 | J. Wang and E. Olson, "AprilTag 2: Efficient and robust fiducial detection," in *Proc. IEEE/RSJ Int. Conf. Intelligent Robots and Systems (IROS)*, 2016, pp. 4193–4198. | https://doi.org/10.1109/IROS.2016.7759617 | [NEW] |
+| 19 | R. E. Kalman, "A new approach to linear filtering and prediction problems," *Trans. ASME J. Basic Engineering*, vol. 82, no. 1, pp. 35–45, 1960. | https://doi.org/10.1115/1.3662552 | [FOUND.] |
+| 20 | B. Bingham, C. Agüero, M. McCarrin, J. Klamo, J. Malia, K. Allen, T. Lum, M. Rawson, and R. Waqar, "Toward maritime robotic simulation in Gazebo," in *Proc. OCEANS 2019 MTS/IEEE Seattle*, 2019, pp. 1–10. | https://doi.org/10.23919/OCEANS40490.2019.8962724 | [NEW] |
+| 21 | A. S. Abujoub, J. McPhee, C. Westin, and R. A. Irani, "Unmanned aerial vehicle landing on maritime vessels using signal prediction of the ship motion," in *Proc. OCEANS 2018 MTS/IEEE Charleston*, 2018, pp. 1–9. | https://doi.org/10.1109/OCEANS.2018.8604848 | [NEW] |
+| 22 | J. Tessendorf, "Simulating ocean water," in *SIGGRAPH Course Notes (Simulating Nature: Realistic and Interactive Techniques)*, 2001. | https://people.computing.clemson.edu/~jtessen/reports/papers_files/coursenotes2002.pdf | [FOUND.] |
+| 23 | D. Hert, T. Báča, P. Petráček, et al., "MRS Drone: A modular platform for real-world deployment of aerial multi-robot systems," *Journal of Intelligent & Robotic Systems*, vol. 108, no. 4, p. 64, 2023. | https://doi.org/10.1007/s10846-023-01879-2 | [NEW] |
+| 24 | L. Yang, Z. Liu, X. Wang, and Y. Xu, "Autonomous ship deck landing of a quadrotor UAV using feed-forward image-based visual servoing," *Aerospace Science and Technology*, vol. 130, p. 107841, 2022. | https://doi.org/10.1016/j.ast.2022.107841 | [NEW] |
+
+## Notes on last semester's bibliography
+Last semester's report contained 10 references. On verification, most had **real authors/topics but fabricated venues, volumes, or titles** (a common AI-generation artefact). Disposition:
+- **#4 (Panjavarnam)** and **#12 (Ru & Subbarao)** correspond to *real* papers and were **corrected** to their true publication details (see table).
+- The remaining last-semester entries (Leeman/Cannon/Kouvaritakis 2025; Wehbeh & Kerrigan "IEEE TAC 70(4) 2025"; Aryan 2025; Saviolo/Rosolia/Borrelli 2024; Batool/Richards/Alonso-Mora 2025; Stephenson/Molnar/Campoy 2024; "D. Procházka/Bartoš/Hromčík 2024"; Wang/Girard/Peters 2024) **could not be verified** as published at the stated venues and were **excluded**. Where a genuine work on the same theme exists, a verified substitute is included above (e.g., robust/tube MPC → Köhler et al. #10 and Mayne et al. #8; learning-based marine landing → Stephenson et al. #5).

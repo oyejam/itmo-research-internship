@@ -21,11 +21,16 @@ Ac(4,10) = 1; Ac(5,11) = 1; Ac(6,12) = 1;
 Ac(7,5) = g;
 Ac(8,4) = -g;
 
+% The MPC input is normalised (u = omega^2 / hoverOmegaSqPhysical, hover = 1 per
+% motor), so the physical input gain is folded into B here. This makes the
+% Table-4 increment penalty R = 0.1 correctly scaled (see
+% initialize_paper_parameters.m).
+hp = params.uav.hoverOmegaSqPhysical;
 Bc = zeros(12, 4);
-Bc(9,:)  = kT / m;
-Bc(10,:) = [-kT*l/Ixx, -kT*l/Ixx,  kT*l/Ixx,  kT*l/Ixx];
-Bc(11,:) = [-kT*l/Iyy,  kT*l/Iyy,  kT*l/Iyy, -kT*l/Iyy];
-Bc(12,:) = [-b/Izz,      b/Izz,     -b/Izz,      b/Izz];
+Bc(9,:)  = (kT / m) * hp;
+Bc(10,:) = [-kT*l/Ixx, -kT*l/Ixx,  kT*l/Ixx,  kT*l/Ixx] * hp;
+Bc(11,:) = [-kT*l/Iyy,  kT*l/Iyy,  kT*l/Iyy, -kT*l/Iyy] * hp;
+Bc(12,:) = [-b/Izz,      b/Izz,     -b/Izz,      b/Izz] * hp;
 
 [A, B] = discretize_uav_model(Ac, Bc, params.mpc.Ts);
 

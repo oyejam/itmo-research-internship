@@ -1,0 +1,12 @@
+UAV-on-boat MPC-FAA reproduction - Monte Carlo summary
+Generated: 2026-06-27 02:13:33
+Runs: 100
+metric                             mean          std     unit
+------------------------------------------------------------
+success_rate_pct                100.000            -        %
+position_deviation_m              0.039        0.020        m
+horizontal_velocity_mps           0.047        0.023      m/s
+roll_deviation_deg                0.276        0.368      deg
+pitch_deviation_deg              -0.382        0.081      deg
+yaw_deviation_deg                -0.000        0.000      deg
+touchdown_time_s                 37.379        1.383        s

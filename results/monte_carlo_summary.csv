@@ -1,0 +1,8 @@
+metric,mean,std,unit,n_runs
+success_rate_pct,100.000000,,%,100
+position_deviation_m,0.039375,0.020226,m,100
+horizontal_velocity_mps,0.046814,0.022673,m/s,100
+roll_deviation_deg,0.276487,0.368411,deg,100
+pitch_deviation_deg,-0.381784,0.080987,deg,100
+yaw_deviation_deg,-0.000061,0.000008,deg,100
+touchdown_time_s,37.379000,1.382670,s,100

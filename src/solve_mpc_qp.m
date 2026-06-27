@@ -16,10 +16,8 @@ H = pred.GammaY' * Qbar * pred.GammaY + Rbar;
 H = 0.5 * (H + H') + 1e-8 * eye(size(H));
 f = pred.GammaY' * Qbar * (pred.PhiY * xa0 - r);
 
-% Slew constraints.
+% Slew constraints on the input increments.
 duMax = params.uav.maxDeltaOmegaSq * ones(N*nu, 1);
-Aineq = [eye(N*nu); -eye(N*nu)];
-bineq = [duMax; duMax];
 
 % State and input constraints across the horizon.
 [xmin, xmax] = state_bounds(params);
@@ -41,28 +39,51 @@ bx = Sx * pred.PhiX * xa0;
 Mu = Su * pred.GammaX;
 bu = Su * pred.PhiX * xa0;
 
-Aineq = [Aineq; Mx; -Mx; Mu; -Mu];
-bineq = [bineq;
+% --- Soft state constraints --------------------------------------------------
+% Decision vector z = [dU; s], with one non-negative slack s per predicted
+% state. The state bounds are relaxed by s and s is heavily penalised, so the
+% QP is always feasible (a hard formulation goes infeasible during aggressive
+% transients, after which a zero-move fallback lets the state run away).
+ns  = N*nx;
+ndu = N*nu;
+Hs  = blkdiag(H, params.mpc.softWeightL2 * eye(ns));
+fs  = [f; params.mpc.softWeight * ones(ns, 1)];
+
+Zdu_ns = zeros(ndu, ns);
+Aineq = [ ...
+    eye(ndu),  Zdu_ns;          % dU <=  duMax
+   -eye(ndu),  Zdu_ns;          % -dU <= duMax
+    Mu,        Zdu_ns;          % input deviation upper
+   -Mu,        Zdu_ns;          % input deviation lower
+    Mx,       -eye(ns);         % state upper, softened by slack
+   -Mx,       -eye(ns);         % state lower, softened by slack
+    zeros(ns, ndu), -eye(ns)];  % s >= 0
+bineq = [ ...
+    duMax;
+    duMax;
+    repmat(uDevMax, N, 1) - bu;
+   -repmat(uDevMin, N, 1) + bu;
     repmat(xmax, N, 1) - bx;
    -repmat(xmin, N, 1) + bx;
-    repmat(uDevMax, N, 1) - bu;
-   -repmat(uDevMin, N, 1) + bu];
+    zeros(ns, 1)];
 
 opts = optimoptions_if_available();
 if exist('quadprog', 'file') == 2
-    [dU, ~, exitflag] = quadprog(H, f, Aineq, bineq, [], [], [], [], [], opts);
+    [Z, ~, exitflag] = quadprog(Hs, fs, Aineq, bineq, [], [], [], [], [], opts);
 else
-    [dU, exitflag] = projected_gradient_qp(H, f, Aineq, bineq, 120);
+    [Z, exitflag] = projected_gradient_qp(Hs, fs, Aineq, bineq, 200);
 end
 
-if isempty(dU) || exitflag <= 0
-    dU = zeros(N*nu, 1);
+if isempty(Z) || exitflag <= 0
+    Z = zeros(ndu + ns, 1);
 end
 
+dU  = Z(1:ndu);
 du0 = dU(1:nu);
 info.exitflag = exitflag;
 info.Q = Q;
 info.HCondition = cond(H);
+info.maxSlack = max([0; Z(ndu+1:end)]);
 end
 
 function opts = optimoptions_if_available()

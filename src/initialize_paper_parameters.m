@@ -22,6 +22,13 @@ params.mpc.Ts = 0.1;
 params.sim.dt = params.mpc.Ts;
 params.sim.maxSteps = ceil(params.stateMachine.maxTime / params.sim.dt);
 
+% Soft state-constraint penalties (slack variables in solve_mpc_qp.m). Hard
+% state constraints over the horizon can become infeasible during aggressive
+% transients; softening them guarantees the QP always returns a usable move and
+% makes the velocity/attitude limits act as strong penalties rather than walls.
+params.mpc.softWeight = 1e5;      % linear penalty on constraint-violation slack
+params.mpc.softWeightL2 = 1e-3;   % small quadratic regularisation on the slack
+
 % UAV dimensions from Section 5.1. Remaining values are representative for
 % a 3.5 kg multirotor and intentionally easy to tune.
 params.uav.mass = 3.5;
@@ -33,10 +40,17 @@ params.uav.Iyy = 0.084;
 params.uav.Izz = 0.145;
 params.uav.kT = 1.9e-5;
 params.uav.drag = 2.6e-7;
-params.uav.hoverOmegaSq = params.uav.mass * params.uav.g / (4 * params.uav.kT);
-params.uav.minOmegaSq = 0.15 * params.uav.hoverOmegaSq;
-params.uav.maxOmegaSq = 2.20 * params.uav.hoverOmegaSq;
-params.uav.maxDeltaOmegaSq = 0.35 * params.uav.hoverOmegaSq;
+% Physical hover rotor-speed-squared (per motor). Used ONLY to scale the input
+% matrix in build_uav_linear_model.m. The MPC works in NORMALISED input units
+% u = omega^2 / hoverOmegaSqPhysical, so that hover = 1 per motor; this keeps
+% the increment penalty R = 0.1 (Table 4) correctly scaled. Without this
+% normalisation the raw omega^2 (~4.5e5) makes any thrust increment
+% astronomically expensive and the UAV cannot climb or manoeuvre.
+params.uav.hoverOmegaSqPhysical = params.uav.mass * params.uav.g / (4 * params.uav.kT);
+params.uav.hoverOmegaSq = 1.0;       % normalised hover thrust (per motor)
+params.uav.minOmegaSq = 0.15;        % normalised lower rotor-speed-squared limit
+params.uav.maxOmegaSq = 2.20;        % normalised upper rotor-speed-squared limit
+params.uav.maxDeltaOmegaSq = 0.35;   % normalised per-step slew limit
 
 % Table 4 constraints.
 params.constraints.rollPitchMax = 0.7854;
