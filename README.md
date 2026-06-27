@@ -1,5 +1,12 @@
 # Agile UAV Landing on a Moving Boat — MPC-FAA Reproduction
 
+[![MATLAB](https://img.shields.io/badge/MATLAB-R2021a%2B-orange?logo=mathworks&logoColor=white)](https://www.mathworks.com/products/matlab.html)
+[![Simulink](https://img.shields.io/badge/Simulink-model-0076A8?logo=mathworks&logoColor=white)](https://www.mathworks.com/products/simulink.html)
+![Optimization Toolbox](https://img.shields.io/badge/Optimization_Toolbox-quadprog-e07b39)
+![LaTeX](https://img.shields.io/badge/report-LaTeX-008080?logo=latex&logoColor=white)
+![Landing success](https://img.shields.io/badge/landing_success-100%25-2ea44f)
+[![DOI](https://img.shields.io/badge/DOI-10.1016%2Fj.oceaneng.2024.119164-1f6feb)](https://doi.org/10.1016/j.oceaneng.2024.119164)
+
 A clean, modular **MATLAB/Simulink reverse-engineering reproduction** of:
 
 > O. Procházka, F. Novák, T. Báča, P. M. Gupta, R. Pěnička, and M. Saska,
@@ -45,16 +52,19 @@ The original paper lands a multirotor UAV on the tilting deck of a moving USV by
 │   └── save_summary.m         # report-ready stats table from saved .mat
 ├── simulink/
 │   └── uav_landing_mpc_faa_model.slx
-├── results/                 # generated figures, logs (.mat), and .fig
-├── report/                  # LaTeX thesis report (Abstract + Ch. 1–5 + refs)
-│   ├── main.tex             # >> compile this (twice) to get the PDF
-│   └── figures/
+├── results/                 # simulation outputs
+│   ├── figures/             # single-trial & Monte Carlo PNGs
+│   ├── monte_carlo_metrics.mat
+│   ├── monte_carlo_summary.txt / .csv
+│   └── single_trial_result.mat
+├── report/                  # thesis report (Abstract + Ch. 1–5 + refs)
+│   ├── main.pdf             # compiled thesis (the deliverable)
+│   └── main.tex             # LaTeX source
 └── docs/
-    ├── references_verified.md            # 24 verified IEEE refs (DOI links)
+    ├── references_verified.md            # verified IEEE references (DOI links)
     ├── reverse_engineering_report.md
     ├── paper_alignment_notes.md          # paper section/equation → code map
-    ├── references/                       # source PDFs + previous-semester report
-    └── extraction/                       # raw extracted text of paper & prev. report
+    └── references/                       # source PDFs + previous-semester report
 ```
 
 ## How to run (MATLAB)
@@ -112,29 +122,19 @@ sim('uav_landing_mpc_faa_model')
 All 100 randomised trials land successfully. The reproduced deviations are *tighter* than the paper's because the controller is given idealised access to the predicted deck states (no Kalman-estimator RMSE, no low-level tracking lag); see the discussion of deviations in [report/main.tex](report/main.tex), Chapter 4. Re-run `run_all` to regenerate these figures, then `save_summary` for a `results/monte_carlo_summary.{txt,csv}` table.
 
 <p align="center">
-  <img src="results/single_trial_top_view.png" width="45%">
-  <img src="results/monte_carlo_statistics.png" width="45%">
+  <img src="results/figures/single_trial_top_view.png" width="45%">
+  <img src="results/figures/monte_carlo_statistics.png" width="45%">
 </p>
 
 ## Building the report
 
-The report embeds the result figures from `report/figures/` so that the
-`report/` folder is self-contained (e.g. for Overleaf). After re-running the
-simulation, refresh those figures from `results/` so the report shows the
-current run:
-
-```bash
-cp results/single_trial_top_view.png results/single_trial_timeseries.png \
-   results/monte_carlo_statistics.png report/figures/
-```
-
-Then compile:
+The compiled thesis is committed as [`report/main.pdf`](report/main.pdf), the primary deliverable. The LaTeX source is [`report/main.tex`](report/main.tex); to rebuild the PDF, compile it twice (the second pass resolves the table of contents and references):
 
 ```bash
 cd report
-pdflatex main && pdflatex main    # run twice for TOC + references
+pdflatex main && pdflatex main
 ```
-Or upload the `report/` folder to **Overleaf** and compile `main.tex`. The report is a university-thesis-style document (each chapter starts on a new page): Abstract + Chapters 1–5 + IEEE references with DOI links.
+The report is a university-thesis-style document (each chapter starts on a new page): Abstract + Chapters 1–5 + IEEE references with DOI links.
 
 ## Fidelity & scope
 

@@ -6,6 +6,7 @@
 %  Compile:  pdflatex main  ->  pdflatex main   (run twice for TOC/refs)
 %  or upload the whole report/ folder to Overleaf and compile main.tex.
 % ============================================================================
+
 \documentclass[12pt,a4paper]{report}
 
 \usepackage[margin=1in]{geometry}
@@ -35,6 +36,33 @@
     urlcolor=blue
 }
 
+\begin{document}
+
+\begin{center}
+    \thispagestyle{empty}
+    \includegraphics[width=0.9\linewidth]{ITMO IMAGE.png}
+\end{center}
+\vspace*{1cm}
+\begin{center}
+    {\Huge\textbf{Faculty of Control Systems and Robotics}}\\[1em]
+    {\huge\textbf{Master's in Robotics and Artificial Intelligence}}\\[2em]
+    {\LARGE\textbf{Course:}} {\LARGE Reseach Project Report --- Semester II}\\[1.5em]
+    {\Large\textbf{Supervisor:}} {\large Prof. Sergey M. Vlasov}\\[0.75em]
+    {\Large\textbf{Student:}} {\large Oyetunde Jamiu Olaide}\\[0.75em]
+    {\Large\textbf{Student ID:}} {\large 520194}\\[3em]
+    {\color{blue}\Huge\textbf{Reverse-Engineering Reproduction of Model Predictive Control--Based Trajectory Generation for Agile Landing of a UAV on a Moving Boat}\par}
+    {\Large\itshape A MATLAB/Simulink Reproduction Study\par}
+    \vfill
+    {\large ITMO University, Saint Petersburg, Russia\par}
+    \vspace{-2em}
+
+\end{center}
+\vspace*{\fill}
+\begin{center}
+    {\large \today}
+\end{center}
+\clearpage
+
 % Each chapter starts on a new page (default for the report class); make the
 % chapter heading style explicit and ensure a clean page break.
 \titleformat{\chapter}[display]
@@ -43,41 +71,14 @@
 
 \newcommand{\R}{\mathbb{R}}
 
-\begin{document}
-
-% ---------------------------------------------------------------- TITLE PAGE
-\begin{titlepage}
-\centering
-\vspace*{0.8cm}
-{\Large Faculty of Control Systems and Robotics\par}
-\vspace{0.3cm}
-{\large Master's in Robotics and Artificial Intelligence\par}
-\vspace{1.0cm}
-{\large Research Internship Report --- Semester II\par}
-\vspace{0.3cm}
-{\large Supervisor: Prof. Sergey M. Vlasov\par}
-\vspace{0.3cm}
-{\large Student: Oyetunde Jamiu Olaide\par}
-\vspace{0.3cm}
-{\large Student ID: 520194\par}
-\vfill
-{\Huge\bfseries Reverse-Engineering Reproduction of Model Predictive Control--Based Trajectory Generation for Agile Landing of a UAV on a Moving Boat\par}
-\vspace{0.6cm}
-{\Large\itshape A MATLAB/Simulink Reproduction Study\par}
-\vfill
-{\large ITMO University, Saint Petersburg, Russia\par}
-\vspace{0.3cm}
-{\large 2026\par}
-\end{titlepage}
-
 \pagenumbering{roman}
 
 % ------------------------------------------------------------------- ABSTRACT
 \chapter*{Abstract}
 \addcontentsline{toc}{chapter}{Abstract}
-This report presents a faithful reverse-engineering reproduction of the work of Proch\'azka \emph{et al.} (2024), \emph{``Model predictive control-based trajectory generation for agile landing of an unmanned aerial vehicle on a moving boat,''} published in \emph{Ocean Engineering}. The original paper proposes a Model Predictive Control (MPC) trajectory generator that exploits predicted Unmanned Surface Vehicle (USV) states---position, orientation, and their first derivatives---to land a multirotor Unmanned Aerial Vehicle (UAV) precisely and quickly on a moving, tilting deck, even in Moderate and Rough sea conditions. The distinguishing element of the method is a time-varying penalisation matrix together with a \emph{Forcing Attitude Alignment} (FAA) function that exponentially increases the importance of roll/pitch synchronisation as the UAV nears the deck.
+This report presents a faithful reverse-engineering reproduction of the work of Proch\'azka \emph{et al.} (2024), \emph{``Model predictive control-based trajectory generation for agile landing of an unmanned aerial vehicle on a moving boat,''} published in \emph{Ocean Engineering}. The original paper proposes a Model Predictive Control (MPC) trajectory generator that exploits predicted Unmanned Surface Vehicle (USV) states which are position, orientation, and their first derivatives, to land a multirotor Unmanned Aerial Vehicle (UAV) precisely and quickly on a moving, tilting deck, even in Moderate and Rough sea conditions. The distinguishing element of the method is a time-varying penalisation matrix together with a \emph{Forcing Attitude Alignment} (FAA) function that exponentially increases the importance of roll/pitch synchronisation as the UAV nears the deck.
 
-The objective of this semester's work is to reconstruct the paper's mathematical model and controller exactly as specified and to reproduce its experiments in a clean, modular MATLAB/Simulink code base. We reproduce: the twelve-state hover-linearised UAV model and its input matrix; the input-increment (delta-$u$) augmented MPC formulation with a $\SI{2}{s}$ / $20$-step prediction horizon; the Table~4 state and input weighting (including the FAA exponential terms); the NAVIGATION/FOLLOW/LANDING mission state machine; and a Gerstner-wave USV deck predictor consistent with the paper's Moderate-sea description. Single-trial and $100$-run Monte Carlo experiments are used to compare touchdown position, horizontal velocity, and attitude deviations against the values reported in the original paper. Observed deviations between this reproduction and the original results are documented and explained in terms of the components that the paper does not publish (full Fossen hydrodynamic matrices, the Kalman state estimator, and the low-level MRS/Pixhawk reference tracker). The deliverable is a self-contained, professionally organised repository suitable for further study, parameter tuning, and future hardware-in-the-loop validation.
+The objective of this semester's work is to reconstruct the paper's mathematical model and controller exactly as specified and to reproduce its experiments in a clean, modular MATLAB/Simulink code base. This work reproduce: the twelve-state hover-linearised UAV model and its input matrix; the input-increment (delta-$u$) augmented MPC formulation with a $\SI{2}{s}$ / $20$-step prediction horizon; the Table~4 state and input weighting (including the FAA exponential terms); the NAVIGATION/FOLLOW/LANDING mission state machine; and a Gerstner-wave USV deck predictor consistent with the paper's Moderate-sea description. Single-trial and $100$-run Monte Carlo experiments are used to compare touchdown position, horizontal velocity, and attitude deviations against the values reported in the original paper. Observed deviations between this reproduction and the original results are documented and explained in terms of the components that the paper does not publish (full Fossen hydrodynamic matrices, the Kalman state estimator, and the low-level MRS/Pixhawk reference tracker). The deliverable is a self-contained, professionally organised repository suitable for further study, parameter tuning, and future hardware-in-the-loop validation.
 
 \tableofcontents
 \listoffigures
@@ -90,9 +91,9 @@ The objective of this semester's work is to reconstruct the paper's mathematical
 % ============================================================================
 
 \section{Background}
-Unmanned aerial vehicles are now routinely used over water for marine wildlife monitoring, search and rescue, offshore inspection, and pollution detection. Because of their limited endurance, a carrier vessel---typically a USV---is used to transport, recharge, and recover the UAV near the mission area. Recovering the UAV requires an autonomous landing on the USV deck, which is one of the most demanding manoeuvres in robotics: the deck simultaneously slides, heaves, and tilts under wave action, while the UAV itself is an underactuated, constrained nonlinear system. It is estimated that the probability of encountering waves of half a metre or more is roughly \SI{90}{\percent} worldwide~\cite{fossen2011}, so robust landing on a rocking deck is a practical necessity rather than an edge case.
+Unmanned aerial vehicles are now routinely used over water for marine wildlife monitoring, search and rescue, offshore inspection, and pollution detection. Because of their limited endurance, a carrier vessel, typically a USV, is used to transport, recharge, and recover the UAV near the mission area. Recovering the UAV requires an autonomous landing on the USV deck, which is one of the most demanding manoeuvres in robotics: the deck simultaneously slides, heaves, and tilts under wave action, while the UAV itself is an underactuated, constrained nonlinear system. It is estimated that the probability of encountering waves of half a metre or more is roughly \SI{90}{\percent} worldwide~\cite{fossen2011}, so robust landing on a rocking deck is a practical necessity rather than an edge case.
 
-Classical visual-servoing and PID-based landing schemes typically wait for a near-level deck before committing to touchdown, which wastes scarce flight time and fails when surge and sway are non-negligible~\cite{gupta2023,yang2022}. Model Predictive Control offers a principled alternative: it solves a constrained finite-horizon optimal-control problem at every sampling instant, so it can anticipate future deck motion, respect actuator and state limits, and trade off competing objectives explicitly~\cite{garcia1989,mayne2000}. The reverse-engineered paper~\cite{prochazka2024} advances this idea by feeding \emph{predicted} USV states into the MPC and by dynamically re-weighting the cost so that attitude alignment is forced during the final flare, enabling fast landing on an inclined deck.
+Classical visual-servoing and PID-based landing schemes typically wait for a near-level deck before committing to touchdown, which wastes scarce flight time and fails when surge and sway are non-negligible~\cite{gupta2023,cho2022}. Model Predictive Control offers a principled alternative: it solves a constrained finite-horizon optimal-control problem at every sampling instant, so it can anticipate future deck motion, respect actuator and state limits, and trade off competing objectives explicitly~\cite{garcia1989,mayne2000}. The reverse-engineered paper~\cite{prochazka2024} advances this idea by feeding \emph{predicted} USV states into the MPC and by dynamically re-weighting the cost so that attitude alignment is forced during the final flare, enabling fast landing on an inclined deck.
 
 \section{Problem Statement}
 The task of this internship is not to propose a new controller but to \emph{reproduce} a published one with high fidelity. Concretely, the problem is:
@@ -111,7 +112,7 @@ The objectives of this work are:
 \end{enumerate}
 
 \section{Scope}
-The reproduction targets the parts of the paper that are \emph{fully specified} and reproducible from the text: the hover-linearised UAV model (Eqs.~\eqref{eq:lin}--\eqref{eq:hover}), the delta-$u$ MPC (Eqs.~\eqref{eq:cost}--\eqref{eq:slewlo}), the Table~3/Table~4 parameters, the FAA function~\eqref{eq:faa}, the state machine of Fig.~3 in the original, and the Gerstner-wave model~\eqref{eq:gerstnerx}--\eqref{eq:gerstnerz}. Components that the paper relies on but does not publish---the identified Fossen hydrodynamic matrices, the multi-sensor Kalman estimator of~\cite{novak2025}, the Gazebo/VRX simulator~\cite{bingham2019}, and the MRS/Pixhawk low-level controller~\cite{baca2021}---are outside the scope of an analytical MATLAB reproduction and are replaced by clearly documented engineering approximations (Chapter~\ref{ch:impl}). Wind is omitted, consistent with the original simulation study.
+The reproduction targets the parts of the paper that are \emph{fully specified} and reproducible from the text: the hover-linearised UAV model (Eqs.~\eqref{eq:lin}--\eqref{eq:hover}), the delta-$u$ MPC (Eqs.~\eqref{eq:cost}--\eqref{eq:slewlo}), the Table~3/Table~4 parameters, the FAA function~\eqref{eq:faa}, the state machine of Fig.~3 in the original, and the Gerstner-wave model~\eqref{eq:gerstnerx}--\eqref{eq:gerstnerz}. Components that the paper relies on but does not publish are the identified Fossen hydrodynamic matrices, the multi-sensor Kalman estimator of~\cite{novak2025}, the Gazebo/VRX simulator~\cite{bingham2019}, and the MRS/Pixhawk low-level controller~\cite{baca2021}, are outside the scope of an analytical MATLAB reproduction and are replaced by clearly documented engineering approximations (Chapter~\ref{ch:impl}). Wind is omitted, consistent with the original simulation study.
 
 % ============================================================================
 \chapter{Literature Review}\label{ch:litreview}
@@ -119,19 +120,19 @@ The reproduction targets the parts of the paper that are \emph{fully specified} 
 This chapter consolidates the literature review of the previous semester's report and extends it with newly verified sources. References marked below as foundational are classical works that remain widely cited; all other cited works were published within the last decade and were individually verified to exist and to be retrievable (DOI/open-access PDF) during this study.
 
 \section{MPC for Constrained Systems}
-Model Predictive Control became the dominant advanced-control paradigm precisely because it handles state and input constraints directly within an online optimisation~\cite{garcia1989}. The stability and optimality theory for constrained MPC was consolidated by Mayne \emph{et al.}~\cite{mayne2000}, who established the roles of terminal cost and terminal constraint sets in guaranteeing recursive feasibility---concepts that underpin every subsequent receding-horizon design, including the present one. When the plant is uncertain, robust formulations tighten the nominal constraints so that the realised trajectory satisfies the original constraints for all admissible disturbances; computationally efficient tube-based realisations for nonlinear systems were given by K\"ohler \emph{et al.}~\cite{kohler2021}. These ideas frame the reference paper's design: it uses a linear MPC for real-time tractability while implicitly reserving constraint margin through conservative box limits.
+Model Predictive Control became the dominant advanced-control paradigm precisely because it handles state and input constraints directly within an online optimisation~\cite{garcia1989}. The stability and optimality theory for constrained MPC was consolidated by Mayne \emph{et al.}~\cite{mayne2000}, who established the roles of terminal cost and terminal constraint sets in guaranteeing recursive feasibility, concepts that underpin every subsequent receding-horizon design, including the present one. When the plant is uncertain, robust formulations tighten the nominal constraints so that the realised trajectory satisfies the original constraints for all admissible disturbances; computationally efficient tube-based realisations for nonlinear systems were given by K\"ohler \emph{et al.}~\cite{kohler2021}. These ideas frame the reference paper's design: it uses a linear MPC for real-time tractability while implicitly reserving constraint margin through conservative box limits.
 
 \section{Quadrotor Modelling and Control}
 The UAV side of the problem builds on well-established multirotor models. Raffo \emph{et al.}~\cite{raffo2010} combined a predictive outer loop with a nonlinear $\mathcal{H}_\infty$ inner loop for quadrotor path following, while Lee \emph{et al.}~\cite{lee2010} developed a coordinate-free geometric controller on $SE(3)$ that avoids attitude singularities. Mellinger and Kumar~\cite{mellinger2011} introduced minimum-snap trajectory generation exploiting differential flatness, which remains the standard reference for aggressive quadrotor trajectories. Ru and Subbarao~\cite{ru2017} demonstrated nonlinear MPC for UAVs using a state-dependent-coefficient formulation with input and state constraints. The reference paper adopts the standard hover-linearised multirotor model, trading global validity for the linear structure that makes real-time MPC feasible on onboard hardware.
 
 \section{Autonomous Landing on Marine and Moving Platforms}
-Landing on a marine vessel has been approached through vision, ranging, and prediction. Vision-based methods use AprilTag fiducials~\cite{olson2011,wang2016} for relative pose, but image-based visual servoing assumes small attitude changes and degrades when the deck tilts strongly~\cite{yang2022}. LiDAR-based schemes estimate ship motion and predict quiescent periods using signal-prediction or active-heave-compensation algorithms~\cite{abujoub2018}. The closest state-of-the-art comparator, Gupta \emph{et al.}~\cite{gupta2023}, decomposes the oscillatory deck motion online and lands during near-zero tilt without inter-vehicle communication; it is the ``MPC-NE'' baseline that the reference paper outperforms by roughly $3.5\times$ in position accuracy and $2\times$ in landing speed. Learning-augmented and distributed variants continue to appear, e.g.\ the online-learning distributed MPC of Stephenson \emph{et al.}~\cite{stephenson2024} and manipulator-assisted capture systems~\cite{xu2024}. A recent comprehensive review of MPC for UAV landing~\cite{panjavarnam2025} situates these works and confirms that dynamic, phase-dependent penalisation of individual deck states during touchdown---the contribution of~\cite{prochazka2024}---was previously absent from the literature.
+Landing on a marine vessel has been approached through vision, ranging, and prediction. Vision-based methods use AprilTag fiducials~\cite{olson2011,wang2016} for relative pose, but image-based visual servoing assumes small attitude changes and degrades when the deck tilts strongly~\cite{cho2022}. LiDAR-based schemes estimate ship motion and predict quiescent periods using signal-prediction or active-heave-compensation algorithms~\cite{abujoub2018}. The closest state-of-the-art comparator, Gupta \emph{et al.}~\cite{gupta2023}, decomposes the oscillatory deck motion online and lands during near-zero tilt without inter-vehicle communication; it is the ``MPC-NE'' baseline that the reference paper outperforms by roughly $3.5\times$ in position accuracy and $2\times$ in landing speed. Learning-augmented and distributed variants continue to appear, e.g.\ the online-learning distributed MPC of Stephenson \emph{et al.}~\cite{stephenson2024} and manipulator-assisted capture systems~\cite{xu2024}. A recent comprehensive review of MPC for UAV landing~\cite{panjavarnam2025} situates these works and confirms that dynamic, phase-dependent penalisation of individual deck states during touchdown, the contribution of~\cite{prochazka2024}, was previously absent from the literature.
 
 \section{USV Modelling, Wave Prediction, and Estimation}
 Accurate landing requires accurate prediction of the deck. The reference paper models the USV with Fossen's standard 6-DOF marine-craft dynamics~\cite{fossen2011} augmented with a wave model, and estimates and predicts the deck state with a Kalman filter~\cite{kalman1960} fusing GNSS, IMU, AprilTag, and the ultraviolet relative-localisation system UVDAR~\cite{walter2019}; the full estimator is detailed in the companion paper of Nov\'ak \emph{et al.}~\cite{novak2025}. The water surface itself is rendered as a sum of Gerstner (trochoidal) waves~\cite{tessendorf2001} inside the MRS Gazebo/VRX maritime simulator~\cite{bingham2019,baca2021,hert2023}. Because the identified hydrodynamic matrices and estimator are not published numerically, the present reproduction substitutes a compact analytical Gerstner-wave deck predictor whose amplitude and period are set to the paper's Moderate-sea values.
 
 \section{Relation of the Previous Semester's Report}
-The previous semester's report developed an uncertainty-aware MPC framework for constrained nonlinear UAV landing, emphasising robust constraint tightening, the performance--robustness trade-off, and real-time feasibility. That framework provides the conceptual backdrop for the current reproduction: the reference paper can be read as a deterministic, phase-scheduled MPC whose conservative box constraints and FAA scheduling play the role that explicit constraint tightening plays in a robust design. The present report reuses that conceptual material and replaces the previous bibliography---several entries of which could not be verified against Scopus/Web of Science---with the fully verified reference list given at the end of this document.
+The previous semester's report developed an uncertainty-aware MPC framework for constrained nonlinear UAV landing, emphasising robust constraint tightening, the performance--robustness trade-off, and real-time feasibility. That framework provides the conceptual backdrop for the current reproduction: the reference paper can be read as a deterministic, phase-scheduled MPC whose conservative box constraints and FAA scheduling play the role that explicit constraint tightening plays in a robust design. The present report reuses that conceptual material and replaces the previous bibliography, several entries of which could not be verified against Scopus/Web of Science, with the fully verified reference list given at the end of this document.
 
 % ============================================================================
 \chapter{Methodology: System Model and MPC Formulation}\label{ch:method}
@@ -198,7 +199,16 @@ for a symmetric X-configuration of arm length $l$ and motor drag constant $b$. T
 \begin{equation}\label{eq:hover}
 k_T\sum_{i=1}^{4}\omega_{hi}^2 = mg.
 \end{equation}
-The model is discretised at $T_s$ to $\bm{x}_{k+1}=\bm{A}\bm{x}_k+\bm{B}\bm{u}_k$, with state order $\bm{x}=[\,x,y,z,\phi,\theta,\psi,v_x,v_y,v_z,v_\phi,v_\theta,v_\psi\,]^\top$ and input $\bm{u}=[\omega_1^2,\omega_2^2,\omega_3^2,\omega_4^2]^\top$.
+The model is discretised at $T_s$ to
+\begin{equation}
+  \bm{x}_{k+1}=\bm{A}\bm{x}_k+\bm{B}\bm{u}_k,
+\end{equation}
+with state and input vectors
+\begin{align}
+  \bm{x} &= [\,x,y,z,\phi,\theta,\psi,
+              v_x,v_y,v_z,v_\phi,v_\theta,v_\psi\,]^\top, \\
+  \bm{u} &= [\,\omega_1^2,\omega_2^2,\omega_3^2,\omega_4^2\,]^\top.
+\end{align}
 
 \section{MPC in Tracking Form}
 The tracking-form objective is (21)
@@ -242,11 +252,11 @@ where $\bar{\bm{C}}_a$ is the controllability (prediction) matrix of the augment
 \end{align}
 
 \section{Mission and Navigation State Machine}
-A finite state machine segments the mission into three phases---NAVIGATION, FOLLOW, LANDING---and selects the reference handed to the MPC:
+A finite state machine segments the mission into three phases (NAVIGATION, FOLLOW, LANDING) and selects the reference handed to the MPC:
 \begin{itemize}[itemsep=2pt]
     \item \textbf{NAVIGATION} = \{\textsc{Get altitude}, \textsc{Approach}\}: the UAV ascends to the approach altitude $h_a$ and flies to the USV's GNSS location, heading toward it, until visual contact.
     \item \textbf{FOLLOW} = \{\textsc{Tracking}, \textsc{Tracking stable}\}: the UAV descends to the tracking altitude $h_t$ above the deck and follows the USV (its predicted velocity is added to the reference) until the landing conditions (horizontal distance, feasible predicted trajectory, bounded position covariance) hold.
-    \item \textbf{LANDING} = \{\textsc{Descent}, \textsc{Flare}, \textsc{Landed}\}: the UAV descends at constant relative vertical speed, then flares---tracking the full deck pose, velocity, and Euler rates---until touchdown, at which point the motors are disarmed.
+    \item \textbf{LANDING} = \{\textsc{Descent}, \textsc{Flare}, \textsc{Landed}\}: the UAV descends at constant relative vertical speed, then flares, tracking the full deck pose, velocity, and Euler rates, until touchdown, at which point the motors are disarmed.
 \end{itemize}
 
 \section{Trajectory Generation and Forcing Attitude Alignment}
@@ -275,33 +285,36 @@ The reproduction is implemented in MATLAB (developed and tested against R2021a) 
 \centering
 \caption{Mapping between source files and the formulation of Chapter~\ref{ch:method}.}
 \label{tab:files}
-\begin{tabular}{p{0.40\linewidth}p{0.52\linewidth}}
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{>{\ttfamily\raggedright\arraybackslash}p{0.42\linewidth}
+                >{\raggedright\arraybackslash}p{0.50\linewidth}}
 \toprule
-File (\texttt{src/}) & Role \\
+\normalfont File (\texttt{src/}) & \normalfont Role \\
 \midrule
-\texttt{initialize\_paper\_parameters.m} & Table~3/Table~4 parameters, constraints, wave settings.\\
-\texttt{build\_uav\_linear\_model.m} & Hover-linearised $\bm{A}_c,\bm{B}_c$ via Eq.~\eqref{eq:lin}--\eqref{eq:Bp}.\\
-\texttt{discretize\_uav\_model.m} & Zero-order-hold discretisation to $\bm{A},\bm{B}$.\\
-\texttt{build\_prediction\_matrices.m} & Augmented model and stacked prediction matrices, Eq.~\eqref{eq:qp}.\\
-\texttt{gerstner\_usv\_motion.m} & Deck pose/velocity/Euler-rate truth, Eq.~\eqref{eq:gerstnerx}--\eqref{eq:gerstnerz}.\\
-\texttt{generate\_usv\_prediction.m} & Predicted deck states over the horizon.\\
-\texttt{uav\_landing\_state\_machine.m} & NAVIGATION/FOLLOW/LANDING logic.\\
-\texttt{create\_reference\_trajectory.m} & Phase-dependent full-state reference.\\
-\texttt{faa\_weight\_matrix.m} & Time-varying $\bm{Q}_{[t]}$ with FAA, Eq.~\eqref{eq:faa}.\\
-\texttt{solve\_mpc\_qp.m} & Condensed QP~\eqref{eq:qp} with constraints~\eqref{eq:statecon}--\eqref{eq:slewlo} (\texttt{quadprog}).\\
-\texttt{simulate\_landing\_trial.m} & Closed-loop rollout and touchdown metrics.\\
-\texttt{run\_all.m} & Single trial + 100-run Monte Carlo driver.\\
-\texttt{build\_simulink\_model.m} & Generates the executable Simulink harness.\\
+initialize\_paper\_parameters.m & Table~3/Table~4 parameters, constraints, wave settings. \\
+build\_uav\_linear\_model.m      & Hover-linearised $\bm{A}_c,\bm{B}_c$ via Eq.~\eqref{eq:lin}--\eqref{eq:Bp}. \\
+discretize\_uav\_model.m         & Zero-order-hold discretisation to $\bm{A},\bm{B}$. \\
+build\_prediction\_matrices.m   & Augmented model and stacked prediction matrices, Eq.~\eqref{eq:qp}. \\
+gerstner\_usv\_motion.m         & Deck pose/velocity/Euler-rate truth, Eq.~\eqref{eq:gerstnerx}--\eqref{eq:gerstnerz}. \\
+generate\_usv\_prediction.m     & Predicted deck states over the horizon. \\
+uav\_landing\_state\_machine.m   & NAVIGATION/FOLLOW/LANDING logic. \\
+create\_reference\_trajectory.m & Phase-dependent full-state reference. \\
+faa\_weight\_matrix.m           & Time-varying $\bm{Q}_{[t]}$ with FAA, Eq.~\eqref{eq:faa}. \\
+solve\_mpc\_qp.m                & Condensed QP~\eqref{eq:qp} with constraints~\eqref{eq:statecon}--\eqref{eq:slewlo} (\texttt{quadprog}). \\
+simulate\_landing\_trial.m      & Closed-loop rollout and touchdown metrics. \\
+run\_all.m                      & Single trial + 100-run Monte Carlo driver. \\
+build\_simulink\_model.m        & Generates the executable Simulink harness. \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \section{Parameters}
-Tables~\ref{tab:t3} and~\ref{tab:t4} list the reproduced settings, taken from Tables~3 and~4 of the original paper; the UAV physical constants are those of the \SI{3.5}{kg}, \SI{0.325}{m}-arm multirotor described in the paper's Section~5.1.
+Tables~\ref{tab:t3} and~\ref{tab:t4} list the reproduced settings, taken from Tables~3 and~4 of the original paper~\cite{prochazka2024}; the UAV physical constants are those of the \SI{3.5}{kg}, \SI{0.325}{m}-arm multirotor described in the paper's Section~5.1.
 
 \begin{table}[H]
 \centering
-\caption{State-machine settings (original Table~3) and horizon.}
+\caption{State-machine settings Table~3 in~\cite{prochazka2024} and horizon.}
 \label{tab:t3}
 \begin{tabular}{lll}
 \toprule
@@ -319,7 +332,7 @@ $T_s$ & \SI{0.1}{s} & sampling time ($\SI{2}{s}$ horizon)\\
 
 \begin{table}[H]
 \centering
-\caption{Constraints and penalisation matrices (original Table~4). $d=v_d$ is the vertical deck distance.}
+\caption{Constraints and penalisation matrices Table~4 in~\cite{prochazka2024}. $d=v_d$ is the vertical deck distance.}
 \label{tab:t4}
 \begin{tabular}{ll}
 \toprule
@@ -337,13 +350,21 @@ $v_\phi,v_\theta,v_\psi$ & $\pm\SI{2}{rad/s}$\\
 \end{table}
 
 \section{Simulink Harness}
-\texttt{build\_simulink\_model.m} programmatically assembles an executable harness (\texttt{simulink/uav\_landing\_mpc\_faa\_model.slx}) in which a MATLAB Function block calls \texttt{simulink\_landing\_step.m} at each $T_s$. The block evaluates the state machine, builds the phase reference and FAA weights, solves the QP, and integrates the linear UAV model, so that the Simulink and pure-MATLAB results coincide. This mirrors the original pipeline (paper Fig.~5) in which the MPC output is converted to a trajectory through the linear model and handed to the reference tracker.
+
+
+\texttt{build\_simulink\_model.m} programmatically assembles an executable harness
+(\path{simulink/uav_landing_mpc_faa_model.slx}) in which a MATLAB Function block calls
+\path{simulink_landing_step.m} at each $T_s$. The block evaluates the state machine,
+builds the phase reference and FAA weights, solves the QP, and integrates the linear UAV
+model, so that the Simulink and pure-MATLAB results coincide. This mirrors the original
+pipeline (paper Fig.~5) in which the MPC output is converted to a trajectory through the
+linear model and handed to the reference tracker.
 
 \section{Experimental Setup}
 Two experiments are reproduced, both for the Moderate-sea, current-carried USV case:
 \begin{enumerate}[itemsep=2pt]
-    \item a single highlighted landing trial (cf.\ original Figs.~7--8), and
-    \item a 100-run Monte Carlo with randomised initial UAV pose at least \SI{40}{m} from the USV (cf.\ original Fig.~9).
+    \item a single highlighted landing trial (cf.\ Figs.~7--8 in~\cite{prochazka2024}), and
+    \item a 100-run Monte Carlo with randomised initial UAV pose at least \SI{40}{m} from the USV (cf.\ Fig.~9 in~\cite{prochazka2024}).
 \end{enumerate}
 The Gerstner predictor uses a peak amplitude of \SI{0.5}{m} and a main period of \SI{5}{s}, matching the paper's statement that these settings yield wave heights between \SI{0.6}{m} and \SI{2.8}{m}.
 
@@ -365,7 +386,7 @@ Figure~\ref{fig:single} shows the reproduced single-trial landing: the top view 
 \end{figure}
 
 \section{Monte Carlo Results}
-Figure~\ref{fig:mc} shows the touchdown-deviation distributions over the 100 reproduced trials. Table~\ref{tab:compare} compares the reproduction's summary statistics with the values reported in Fig.~9 of the original paper; the reproduction column is taken directly from the \texttt{run\_all.m} console summary. All $100$ randomised trials land successfully ($\SI{100}{\percent}$ success rate), with a mean full-mission duration of $\SI{37.4(14)}{s}$ from the randomised start pose to touchdown, of which the agile landing manoeuvre (descent and flare) occupies the final $\sim\SI{8}{s}$. The reproduced touchdown deviations are uniformly \emph{tighter} than the original paper's: position deviation $\SI{0.039(20)}{m}$ versus $\SI{0.15}{m}$, and roll/pitch standard deviations below $\SI{0.4}{\degree}$ versus $\SI{2.85}{\degree}$/$\SI{2.30}{\degree}$. This is the expected consequence of granting the controller idealised access to the predicted deck states: the original figures additionally fold in the finite RMSE of the multi-sensor Kalman estimator and the lag of the low-level reference tracker, neither of which is present here (Section~\ref{ch:impl}, \emph{Discussion of Deviations}).
+Figure~\ref{fig:mc} shows the touchdown-deviation distributions over the 100 reproduced trials. Table~\ref{tab:compare} compares the reproduction's summary statistics with the values reported in Fig.~9 of~\cite{prochazka2024}; the reproduction column is taken directly from the \texttt{run\_all.m} console summary. All $100$ randomised trials land successfully ($\SI{100}{\percent}$ success rate), with a mean full-mission duration of $\SI{37.4(14)}{s}$ from the randomised start pose to touchdown, of which the agile landing manoeuvre (descent and flare) occupies the final $\sim\SI{8}{s}$. The reproduced touchdown deviations are uniformly \emph{tighter} than the original paper's: position deviation $\SI{0.039(20)}{m}$ versus $\SI{0.15}{m}$, and roll/pitch standard deviations below $\SI{0.4}{\degree}$ versus $\SI{2.85}{\degree}$/$\SI{2.30}{\degree}$. This is the expected consequence of granting the controller idealised access to the predicted deck states: the original figures additionally fold in the finite RMSE of the multi-sensor Kalman estimator and the lag of the low-level reference tracker, neither of which is present here (Section~\ref{ch:impl}, \emph{Discussion of Deviations}).
 
 \begin{figure}[H]
 \centering
@@ -451,7 +472,7 @@ This work reverse-engineered and reproduced the MPC-based UAV-on-boat landing me
 
 \bibitem{garcia1989} C. E. Garc\'ia, D. M. Prett, and M. Morari, ``Model predictive control: Theory and practice---A survey,'' \emph{Automatica}, vol.~25, no.~3, pp.~335--348, 1989. \href{https://doi.org/10.1016/0005-1098(89)90002-2}{https://doi.org/10.1016/0005-1098(89)90002-2}
 
-\bibitem{kohler2021} J. K\"ohler, M. A. M\"uller, and F. Allg\"ower, ``A computationally efficient robust model predictive control framework for uncertain nonlinear systems,'' \emph{IEEE Transactions on Automatic Control}, vol.~66, no.~2, pp.~794--801, 2021. \href{https://doi.org/10.1109/TAC.2020.2985385}{https://doi.org/10.1109/TAC.2020.2985385}
+\bibitem{kohler2021} J. K\"ohler, M. A. M\"uller, and F. Allg\"ower, ``A computationally efficient robust model predictive control framework for uncertain nonlinear systems,'' \emph{IEEE Transactions on Automatic Control}, vol.~66, no.~2, pp.~794--801, 2021. \href{https://doi.org/10.48550/arXiv.1910.12081}{https://doi.org/10.48550/arXiv.1910.12081}
 
 \bibitem{baca2021} T. B\'a\v{c}a, M. Petrl\'ik, M. Vrba, V. Spurn\'y, R. P\v{e}ni\v{c}ka, D. Hert, and M. Saska, ``The MRS UAV system: Pushing the frontiers of reproducible research, real-world deployment, and education with autonomous unmanned aerial vehicles,'' \emph{Journal of Intelligent \& Robotic Systems}, vol.~102, no.~26, 2021. \href{https://doi.org/10.1007/s10846-021-01383-5}{https://doi.org/10.1007/s10846-021-01383-5}
 
@@ -471,15 +492,16 @@ This work reverse-engineered and reproduced the MPC-based UAV-on-boat landing me
 
 \bibitem{kalman1960} R. E. Kalman, ``A new approach to linear filtering and prediction problems,'' \emph{Trans. ASME J. Basic Engineering}, vol.~82, no.~1, pp.~35--45, 1960. \href{https://doi.org/10.1115/1.3662552}{https://doi.org/10.1115/1.3662552}
 
-\bibitem{bingham2019} B. Bingham, C. Ag\"uero, M. McCarrin, J. Klamo, J. Malia, K. Allen, T. Lum, M. Rawson, and R. Waqar, ``Toward maritime robotic simulation in Gazebo,'' in \emph{Proc. OCEANS 2019 MTS/IEEE Seattle}, 2019, pp.~1--10. \href{https://doi.org/10.23919/OCEANS40490.2019.8962724}{https://doi.org/10.23919/OCEANS40490.2019.8962724}
+\bibitem{bingham2019} B. Bingham, C. Ag\"uero, M. McCarrin, J. Klamo, J. Malia, K. Allen, T. Lum, M. Rawson, and R. Waqar, ``Toward maritime robotic simulation in Gazebo,'' in \emph{Proc. OCEANS 2019 MTS/IEEE Seattle}, 2019, pp.~1--10. \href{https://doi.org/10.23919/OCEANS40490.2019.8962724}
+{https://doi.org/10.23919/OCEANS40490.2019.8962724}
 
-\bibitem{abujoub2018} A. S. Abujoub, J. McPhee, C. Westin, and R. A. Irani, ``Unmanned aerial vehicle landing on maritime vessels using signal prediction of the ship motion,'' in \emph{Proc. OCEANS 2018 MTS/IEEE Charleston}, 2018, pp.~1--9. \href{https://doi.org/10.1109/OCEANS.2018.8604848}{https://doi.org/10.1109/OCEANS.2018.8604848}
+\bibitem{abujoub2018} A. S. Abujoub, J. McPhee, C. Westin, and R. A. Irani, ``Unmanned aerial vehicle landing on maritime vessels using signal prediction of the ship motion,'' in \emph{Proc. OCEANS 2018 MTS/IEEE Charleston}, 2018, pp.~1--9. \href{https://doi.org/10.1109/OCEANS.2018.8604820}{https://doi.org/10.1109/OCEANS.2018.8604820}
 
 \bibitem{tessendorf2001} J. Tessendorf, ``Simulating ocean water,'' in \emph{SIGGRAPH Course Notes (Simulating Nature: Realistic and Interactive Techniques)}, 2001. \href{https://people.computing.clemson.edu/~jtessen/reports/papers_files/coursenotes2002.pdf}{[open-access PDF]}
 
 \bibitem{hert2023} D. Hert, T. B\'a\v{c}a, P. Petr\'a\v{c}ek, \emph{et al.}, ``MRS Drone: A modular platform for real-world deployment of aerial multi-robot systems,'' \emph{Journal of Intelligent \& Robotic Systems}, vol.~108, no.~4, p.~64, 2023. \href{https://doi.org/10.1007/s10846-023-01879-2}{https://doi.org/10.1007/s10846-023-01879-2}
 
-\bibitem{yang2022} L. Yang, Z. Liu, X. Wang, and Y. Xu, ``Autonomous ship deck landing of a quadrotor UAV using feed-forward image-based visual servoing,'' \emph{Aerospace Science and Technology}, vol.~130, p.~107841, 2022. \href{https://doi.org/10.1016/j.ast.2022.107841}{https://doi.org/10.1016/j.ast.2022.107841}
+\bibitem{cho2022} G. Cho, J. Choi, G. Bae, and H. Oh, ``Autonomous ship deck landing of a quadrotor UAV using feed-forward image-based visual servoing,'' \emph{Aerospace Science and Technology}, vol.~130, p.~107869, 2022. \href{https://doi.org/10.1016/j.ast.2022.107869}{https://doi.org/10.1016/j.ast.2022.107869}
 
 \end{thebibliography}
 
